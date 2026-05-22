@@ -1,0 +1,37 @@
+id: stop.llm-provider-missing-moderation-ts
+language: typescript
+severity: warning
+message: |-
+  LLM call invoked without input/output moderation classifier. No guardrail layer on prompt or response.
+  Architectural fix: wrap LLM calls with moderation (Llama Guard, OpenAI Moderation, Bedrock Guardrails) (Shift 3).
+metadata:
+  shift: stop
+  component: control-flow
+  framework: meta-llamaguard
+  references:
+    - https://ai.meta.com/research/publications/llama-guard-llm-based-input-output-safeguard-for-human-ai-conversations/
+    - https://platform.openai.com/docs/guides/moderation
+rule:
+  all:
+    - any:
+        - kind: function_declaration
+        - kind: arrow_function
+        - kind: method_definition
+        - kind: function_expression
+    - has:
+        stopBy: end
+        any:
+          - pattern: streamText($$$)
+          - pattern: generateText($$$)
+          - pattern: $CLIENT.chat.completions.create($$$)
+          - pattern: $CLIENT.messages.create($$$)
+    - not:
+        has:
+          stopBy: end
+          any:
+            - pattern: $$$.moderations.create($$$)
+            - pattern: $$$.moderate($$$)
+            - pattern: LlamaGuard($$$)
+            - pattern: PromptGuard($$$)
+            - pattern: $$$.classify($$$)
+            - pattern: $$$.applyGuardrail($$$)

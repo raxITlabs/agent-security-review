@@ -1,0 +1,29 @@
+id: sign.gateway-unauthenticated-endpoint
+language: python
+severity: error
+message: |-
+  Gateway / MCP endpoint defined without authentication dependency. Anyone can invoke tools.
+  Architectural fix: require auth (OAuth, JWT, mTLS, API key) on every endpoint (Shift 2).
+metadata:
+  shift: sign
+  component: gateway
+  framework: oauth-2.1-best-practices
+  references:
+    - https://datatracker.ietf.org/doc/draft-ietf-oauth-v2-1/
+rule:
+  all:
+    - kind: function_definition
+    - has:
+        kind: decorator
+        any:
+          - regex: "@app\\.(post|get|put|delete)"
+          - regex: "@router\\.(post|get|put|delete)"
+    - not:
+        has:
+          stopBy: end
+          any:
+            - pattern: Depends(get_current_user)
+            - pattern: Depends($AUTH)
+            - pattern: api_key_header
+            - pattern: verify_token($$$)
+            - pattern: "@requires_auth"

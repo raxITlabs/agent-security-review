@@ -1,0 +1,34 @@
+id: scope.skill-with-dangerous-tool-combo
+language: python
+severity: error
+message: |-
+  Skill / agent registers tool list with dangerous combination (filesystem + network + shell). Lethal Trifecta candidate.
+  Architectural fix: split into specialized skills, each with narrow tool list (Shift 1).
+metadata:
+  shift: scope
+  component: skills
+  framework: meta-rule-of-two
+  references:
+    - https://ai.meta.com/blog/practical-ai-agent-security/
+rule:
+  all:
+    - kind: module
+    - has:
+        stopBy: end
+        any:
+          - pattern: shell_tool
+          - pattern: bash_tool
+          - pattern: ShellTool($$$)
+          - pattern: PythonREPLTool($$$)
+    - has:
+        stopBy: end
+        any:
+          - pattern: requests.post($$$)
+          - pattern: requests.put($$$)
+          - pattern: smtplib.$$$
+    - has:
+        stopBy: end
+        any:
+          - pattern: open($FILE, "w")
+          - pattern: open($FILE, "a")
+          - pattern: FileWriterTool($$$)

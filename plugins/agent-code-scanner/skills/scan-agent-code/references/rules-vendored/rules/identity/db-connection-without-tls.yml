@@ -1,0 +1,27 @@
+id: sign.db-connection-without-tls
+language: python
+severity: error
+message: |-
+  Database connection created without TLS. Data in transit is plaintext; tampering / interception risk.
+  Architectural fix: require sslmode=require / ssl=True on all database connections (Shift 2).
+metadata:
+  shift: sign
+  component: identity
+  maestro_layer: L2   # Data Operations — tampering in transit
+  framework: maestro-l2
+  references:
+    - https://cloudsecurityalliance.org/blog/2025/02/06/agentic-ai-threat-modeling-framework-maestro
+rule:
+  any:
+    - all:
+        - pattern: psycopg2.connect($$$)
+        - not: { has: { stopBy: end, pattern: sslmode=$$$ } }
+    - all:
+        - pattern: pymongo.MongoClient($$$)
+        - not: { has: { stopBy: end, pattern: tls=$$$ } }
+    - all:
+        - pattern: redis.Redis($$$)
+        - not: { has: { stopBy: end, pattern: ssl=$$$ } }
+    - all:
+        - pattern: mysql.connector.connect($$$)
+        - not: { has: { stopBy: end, pattern: ssl_disabled=False } }

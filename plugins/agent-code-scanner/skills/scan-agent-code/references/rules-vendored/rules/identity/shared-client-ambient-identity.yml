@@ -1,0 +1,26 @@
+id: sign.shared-client-ambient-identity
+language: python
+severity: warning
+message: |-
+  Client object constructed at module scope. Every tool call inherits the same ambient identity (Confused Deputy).
+  Architectural fix: construct per-task with scoped credentials / capability warrant (Shift 2).
+metadata:
+  shift: sign
+  framework: camel-confused-deputy
+  references:
+    - https://arxiv.org/abs/2503.18813
+rule:
+  all:
+    - any:
+        - pattern: $X = boto3.client($$$)
+        - pattern: $X = boto3.resource($$$)
+        - pattern: $X = Anthropic($$$)
+        - pattern: $X = OpenAI($$$)
+        - pattern: $X = anthropic.Anthropic($$$)
+        - pattern: $X = openai.OpenAI($$$)
+    - not:
+        inside:
+          stopBy: end
+          any:
+            - kind: function_definition
+            - kind: class_definition

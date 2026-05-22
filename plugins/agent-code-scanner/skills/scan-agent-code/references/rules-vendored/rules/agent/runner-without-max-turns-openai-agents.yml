@@ -1,0 +1,27 @@
+id: scope.openai-agents-runner-without-max-turns
+language: python
+severity: warning
+message: |-
+  Runner.run() called without max_turns cap. Risk of unbounded agentic
+  loops consuming tokens / inflating cost. Architectural fix: pass
+  max_turns aligned with workflow budget (Shift 1).
+metadata:
+  shift: scope
+  component: agent
+  framework: openai-agents-sdk-best-practices
+  references:
+    - https://openai.github.io/openai-agents-python/
+    - https://cloudsecurityalliance.org/blog/2025/02/06/agentic-ai-threat-modeling-framework-maestro
+rule:
+  all:
+    - any:
+        - pattern: Runner.run($AGENT, $$$ARGS)
+        - pattern: Runner.run_sync($AGENT, $$$ARGS)
+        - pattern: Runner.run_streamed($AGENT, $$$ARGS)
+    - not:
+        has:
+          stopBy: end
+          kind: keyword_argument
+          has:
+            field: name
+            regex: '^max_turns$'

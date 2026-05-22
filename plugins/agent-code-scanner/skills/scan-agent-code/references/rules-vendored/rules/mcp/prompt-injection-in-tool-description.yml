@@ -1,0 +1,18 @@
+id: scope.mcp-prompt-injection-in-tool-description
+language: python
+severity: warning
+message: |-
+  MCP tool description contains imperative phrases like 'always do X' or 'ignore previous'. Description is part of prompt — attackers can plant instructions here.
+  Architectural fix: tool descriptions describe purpose only; do not include instructions to the model (Shift 1).
+metadata:
+  shift: scope
+  component: mcp
+  framework: msrc-prompts-become-shells
+  references:
+    - https://www.microsoft.com/en-us/security/blog/2026/05/07/prompts-become-shells-rce-vulnerabilities-ai-agent-frameworks/
+rule:
+  all:
+    - any:
+        - pattern: description="$$$"
+        - pattern: description='$$$'
+    - regex: "(?i)(always|ignore previous|disregard|you must|override)"

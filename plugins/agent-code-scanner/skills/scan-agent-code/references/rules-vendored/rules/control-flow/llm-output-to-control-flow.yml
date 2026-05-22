@@ -1,0 +1,16 @@
+id: stop.llm-output-to-control-flow
+language: python
+severity: error
+message: |-
+  LLM call result used directly in control flow. CaMeL violation: untrusted data influences program flow.
+  Architectural fix: use Quarantined LLM that returns typed values; do not branch on raw LLM output (Shift 3).
+metadata:
+  shift: stop
+  framework: deepmind-camel
+  references:
+    - https://arxiv.org/abs/2503.18813
+rule:
+  any:
+    - pattern: 'if $LLM.invoke($$$): $$$'
+    - pattern: 'if $LLM.complete($$$): $$$'
+    - pattern: 'while $LLM.invoke($$$): $$$'

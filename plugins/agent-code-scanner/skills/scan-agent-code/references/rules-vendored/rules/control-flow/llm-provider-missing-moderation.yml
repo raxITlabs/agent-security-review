@@ -1,0 +1,30 @@
+id: stop.llm-provider-missing-moderation
+language: python
+severity: warning
+message: |-
+  LLM chat completion called without input/output moderation. No guardrail layer on prompt or response.
+  Architectural fix: wrap LLM calls with moderation classifier (Llama Guard, OpenAI Moderation, etc.) (Shift 3).
+metadata:
+  shift: stop
+  component: control-flow
+  framework: meta-llamaguard
+  references:
+    - https://ai.meta.com/research/publications/llama-guard-llm-based-input-output-safeguard-for-human-ai-conversations/
+rule:
+  all:
+    - kind: function_definition
+    - has:
+        stopBy: end
+        any:
+          - pattern: $CLIENT.chat.completions.create($$$)
+          - pattern: $CLIENT.messages.create($$$)
+          - pattern: $CLIENT.complete($$$)
+    - not:
+        has:
+          stopBy: end
+          any:
+            - pattern: $$$.moderate($$$)
+            - pattern: LlamaGuard($$$)
+            - pattern: openai.moderations.create($$$)
+            - pattern: PromptGuard($$$)
+            - pattern: $$$.classify($$$)

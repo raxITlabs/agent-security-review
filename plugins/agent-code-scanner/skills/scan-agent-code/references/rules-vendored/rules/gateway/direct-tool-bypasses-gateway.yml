@@ -1,0 +1,18 @@
+id: stop.direct-tool-bypasses-gateway
+language: python
+severity: error
+message: |-
+  Tool invoked directly without passing through a gateway / reference monitor.
+  Architectural fix: route every tool call through a policy-checked gateway (Shift 3).
+metadata:
+  shift: stop
+  component: gateway
+  framework: aws-cedar-agentcore
+  references:
+    - https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/policy-common-patterns.html
+rule:
+  any:
+    - pattern: $TOOLS[$NAME]($ARGS)
+    - pattern: globals()[$NAME]($ARGS)
+    - pattern: getattr($MOD, $NAME)($ARGS)
+    - pattern: locals()[$NAME]($ARGS)

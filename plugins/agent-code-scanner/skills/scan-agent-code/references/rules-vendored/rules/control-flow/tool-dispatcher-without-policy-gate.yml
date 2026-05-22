@@ -1,0 +1,17 @@
+id: stop.tool-dispatcher-without-policy-gate
+language: python
+severity: error
+message: |-
+  Tool dispatcher invokes tools by name without policy gate. Injected LLM can request any registered tool.
+  Architectural fix: insert reference monitor (Cedar) before dispatch (Shift 3).
+metadata:
+  shift: stop
+  framework: msrc-prompts-become-shells
+  references:
+    - https://www.microsoft.com/en-us/security/blog/2026/05/07/prompts-become-shells-rce-vulnerabilities-ai-agent-frameworks/
+rule:
+  any:
+    - pattern: $TOOLS[$NAME]($ARGS)
+    - pattern: globals()[$NAME]($ARGS)
+    - pattern: getattr($MODULE, $NAME)($ARGS)
+    - pattern: locals()[$NAME]($ARGS)

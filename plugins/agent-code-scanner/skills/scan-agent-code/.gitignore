@@ -1,0 +1,3 @@
+# Runtime cache of rules fetched from GitHub (regenerated on demand)
+.cache/
+findings.json

@@ -1,0 +1,32 @@
+id: scope.rag-without-source-attribution
+language: python
+severity: warning
+message: |-
+  RAG retrieval result fed into LLM prompt without source attribution metadata.
+  Indirect prompt injection risk: compromised RAG documents inject instructions invisibly.
+  Architectural fix: tag every retrieved chunk with source URL + trust label; render in prompt (Shift 1).
+metadata:
+  shift: scope
+  component: memory
+  maestro_layer: L2   # Data Operations — RAG poisoning + L1 indirect prompt injection
+  framework: maestro-l2-rag-poisoning
+  references:
+    - https://cloudsecurityalliance.org/blog/2025/02/06/agentic-ai-threat-modeling-framework-maestro
+    - https://simonwillison.net/2023/Apr/14/worst-that-can-happen/
+rule:
+  any:
+    - all:
+        - pattern: $RESULTS = $RETRIEVER.invoke($$$)
+        - not:
+            has:
+              stopBy: end
+              any:
+                - pattern: $$$.metadata["source"]
+                - pattern: $$$.metadata.get("source")
+                - pattern: source_attribution
+    - all:
+        - pattern: $RESULTS = $VECTOR.similarity_search($$$)
+        - not:
+            has:
+              stopBy: end
+              pattern: $$$.metadata["source"]

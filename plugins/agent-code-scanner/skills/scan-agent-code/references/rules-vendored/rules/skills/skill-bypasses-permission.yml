@@ -1,0 +1,17 @@
+id: sign.skill-bypasses-permission
+language: python
+severity: error
+message: |-
+  Skill / Claude Code config sets dangerously-skip-permissions or bypassPermissions. Disables the deny-by-default gate.
+  Architectural fix: never bypass permission gates in production agents (Shift 2).
+metadata:
+  shift: sign
+  component: skills
+  framework: anthropic-claude-code-best-practices
+  references:
+    - https://docs.claude.com/en/docs/claude-code/security
+rule:
+  any:
+    - pattern: permission_mode="bypassPermissions"
+    - pattern: dangerously_skip_permissions=True
+    - pattern: ClaudeAgentOptions(permission_mode="bypassPermissions", $$$)

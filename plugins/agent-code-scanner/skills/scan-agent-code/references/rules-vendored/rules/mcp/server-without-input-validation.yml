@@ -1,0 +1,25 @@
+id: scope.mcp-server-without-input-validation
+language: python
+severity: error
+message: |-
+  MCP server tool has parameters reaching dangerous sinks without validation. Tool poisoning / RCE risk.
+  Architectural fix: validate every tool parameter against allowlist before any side effect (Shift 1).
+metadata:
+  shift: scope
+  component: mcp
+  framework: msrc-prompts-become-shells
+  references:
+    - https://www.microsoft.com/en-us/security/blog/2026/05/07/prompts-become-shells-rce-vulnerabilities-ai-agent-frameworks/
+    - https://modelcontextprotocol.io/specification/draft/basic/security_best_practices
+rule:
+  all:
+    - kind: function_definition
+    - has:
+        kind: decorator
+        regex: "@(server|mcp|app)\\.tool"
+    - has:
+        stopBy: end
+        any:
+          - pattern: subprocess.$M($$$)
+          - pattern: cursor.execute(f"$$$")
+          - regex: "os\\.system\\("

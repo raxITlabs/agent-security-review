@@ -1,0 +1,47 @@
+id: scope.rule-of-two-violation
+language: python
+severity: error
+message: |-
+  Meta Rule of Two violated. Module has all three risky properties:
+  [A] untrusted input ingestion, [B] sensitive data access, [C] state change / external comm.
+  Architectural fix: remove one capability OR require human-in-the-loop approval before action.
+metadata:
+  shift: scope
+  framework: meta-rule-of-two
+  properties: [untrusted_input, sensitive_access, state_change]
+  references:
+    - https://ai.meta.com/blog/practical-ai-agent-security/
+    - https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/
+rule:
+  all:
+    - kind: module
+    - has:
+        stopBy: end
+        any:
+          - pattern: requests.get($$$)
+          - pattern: httpx.get($$$)
+          - pattern: urllib.request.urlopen($$$)
+          - pattern: TavilySearch($$$)
+          - pattern: $$$.fetch_url($$$)
+          - pattern: $$$.read_email($$$)
+          - pattern: $$$.retrieve($$$)
+          - pattern: $$$.search($$$)
+    - has:
+        stopBy: end
+        any:
+          - pattern: $$$.execute($$$)
+          - pattern: boto3.client($$$)
+          - pattern: boto3.resource($$$)
+          - pattern: $$$.query($$$)
+          - pattern: $$$.get_secret_value($$$)
+          - pattern: bigquery.$$$
+    - has:
+        stopBy: end
+        any:
+          - pattern: requests.post($$$)
+          - pattern: requests.put($$$)
+          - pattern: requests.delete($$$)
+          - pattern: httpx.post($$$)
+          - pattern: smtplib.$$$
+          - pattern: $$$.send_email($$$)
+          - pattern: $$$.create_pr($$$)

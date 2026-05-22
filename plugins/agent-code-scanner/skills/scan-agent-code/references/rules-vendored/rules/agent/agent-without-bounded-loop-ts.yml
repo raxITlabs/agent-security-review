@@ -1,0 +1,27 @@
+id: scope.agent-without-bounded-loop-ts
+language: typescript
+severity: warning
+message: |-
+  Agentic LLM call lacks a maxSteps / maxToolRoundtrips cap. Risks unbounded tool loops / denial-of-wallet.
+  Architectural fix: cap agent steps per invocation (Shift 1, Scope).
+metadata:
+  shift: scope
+  component: agent
+  framework: vercel-ai-sdk-best-practices
+  references:
+    - https://sdk.vercel.ai/docs/ai-sdk-core/tools-and-tool-calling
+    - https://sdk.vercel.ai/docs/ai-sdk-core/agents
+rule:
+  all:
+    - any:
+        - pattern: streamText($$$)
+        - pattern: generateText($$$)
+    - has:
+        stopBy: end
+        kind: property_identifier
+        regex: '^tools$'
+    - not:
+        has:
+          stopBy: end
+          kind: property_identifier
+          regex: '^(maxSteps|maxToolRoundtrips|stopWhen)$'

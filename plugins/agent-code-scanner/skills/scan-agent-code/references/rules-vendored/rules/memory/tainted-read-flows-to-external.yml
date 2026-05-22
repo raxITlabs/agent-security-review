@@ -1,0 +1,27 @@
+id: stop.memory-tainted-read-flows-to-external
+language: python
+severity: error
+message: |-
+  Function reads from memory store and sends external request. Tainted memory may be exfiltrated.
+  Architectural fix: reference monitor with session taints between memory read and external send (Shift 3).
+metadata:
+  shift: stop
+  component: memory
+  framework: cedar-action-composition
+  references:
+    - https://arxiv.org/abs/2403.04651
+rule:
+  all:
+    - kind: function_definition
+    - has:
+        stopBy: end
+        any:
+          - pattern: $MEM.load_memory_variables($$$)
+          - pattern: $MEM.get_memories($$$)
+          - pattern: $VECTOR.similarity_search($$$)
+    - has:
+        stopBy: end
+        any:
+          - pattern: requests.post($$$)
+          - pattern: requests.put($$$)
+          - pattern: $$$.send_email($$$)

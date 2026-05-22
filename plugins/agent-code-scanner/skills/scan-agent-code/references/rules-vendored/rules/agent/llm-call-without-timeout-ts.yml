@@ -1,0 +1,29 @@
+id: scope.llm-call-without-timeout-ts
+language: typescript
+severity: warning
+message: |-
+  LLM API call has no explicit abortSignal / timeout. Denial-of-wallet risk from runaway requests.
+  Architectural fix: thread a per-request AbortController with a budget-aligned timeout (Shift 1).
+metadata:
+  shift: scope
+  component: agent
+  maestro_layer: L1
+  framework: maestro-l1
+  references:
+    - https://cloudsecurityalliance.org/blog/2025/02/06/agentic-ai-threat-modeling-framework-maestro
+    - https://sdk.vercel.ai/docs/ai-sdk-core/generating-text
+rule:
+  all:
+    - any:
+        - pattern: streamText($$$)
+        - pattern: generateText($$$)
+        - pattern: streamObject($$$)
+        - pattern: generateObject($$$)
+        - pattern: $CLIENT.chat.completions.create($$$)
+        - pattern: $CLIENT.messages.create($$$)
+        - pattern: $CLIENT.messages.stream($$$)
+    - not:
+        has:
+          stopBy: end
+          kind: property_identifier
+          regex: '^(abortSignal|signal|timeout|request_timeout)$'

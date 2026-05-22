@@ -1,0 +1,31 @@
+id: sign.a2a-communication-without-auth
+language: python
+severity: error
+message: |-
+  Agent-to-agent (A2A) message send without authentication header / signature. Agent impersonation risk.
+  Architectural fix: sign every A2A message; verify signature on receive (Shift 2).
+metadata:
+  shift: sign
+  component: gateway
+  maestro_layer: L7
+  framework: maestro-l7
+  references:
+    - https://cloudsecurityalliance.org/blog/2025/02/06/agentic-ai-threat-modeling-framework-maestro
+rule:
+  any:
+    - all:
+        - pattern: 'requests.post($URL, json=$BODY)'
+        - not:
+            has:
+              stopBy: end
+              any:
+                - pattern: 'headers=$HEADERS'
+                - pattern: 'auth=$AUTH'
+    - all:
+        - pattern: '$CLIENT.send_message($MSG)'
+        - not:
+            has:
+              stopBy: end
+              any:
+                - pattern: '$MSG.signature'
+                - pattern: 'sign_message($$$)'

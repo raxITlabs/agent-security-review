@@ -35,6 +35,25 @@ ast-grep scan --config sgconfig.yml --json .       # JSON output
 
 Run against the bundled test corpus: `./scripts/run-fixtures.sh`
 
+## Use it in Claude Code
+
+Install the scanner as a Claude Code skill, then just ask *"security-review my agent code"* — Claude fetches the latest rules, runs the scan, and reports findings with fixes.
+
+**As a plugin** (recommended):
+
+```
+/plugin marketplace add raxITlabs/agent-code-scanner-rules
+/plugin install agent-code-scanner@raxitlabs
+```
+
+**Or one-line install** (standalone skill):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/raxITlabs/agent-code-scanner-rules/main/install.sh | bash
+```
+
+Both pull the latest rules from this repo at scan time (with an offline fallback) and need [ast-grep](https://ast-grep.github.io/) (`brew install ast-grep`). Skill source: [`plugins/agent-code-scanner/`](plugins/agent-code-scanner/).
+
 ## Docs
 
 - **[Rule catalog](docs/RULES.md)** — all 39 rules, severity, and what each one flags

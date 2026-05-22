@@ -1,0 +1,14 @@
+id: scope.god-agent-tool-count
+language: python
+severity: warning
+message: |-
+  Multiple tool registrations in one place suggests God Agent pattern.
+  Architectural fix: split into polyphonic specialized agents (Shift 1).
+metadata:
+  shift: scope
+  references:
+    - https://arxiv.org/abs/2503.18813
+rule:
+  any:
+    - pattern: Tool($$$)
+    - pattern: StructuredTool.from_function($$$)

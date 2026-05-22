@@ -1,0 +1,25 @@
+id: scope.shared-memory-no-namespace
+language: python
+severity: error
+message: |-
+  Memory write to shared store without per-agent / per-tenant namespace. Brooks Dropbox pattern — one poisoned write contaminates all readers.
+  Architectural fix: namespace memory keys with agent_id / tenant_id (Shift 1).
+metadata:
+  shift: scope
+  component: memory
+  framework: kill-the-god-agent-brooks
+  references:
+    - https://docs.raxit.ai/scope-sign-stop
+rule:
+  any:
+    - pattern: memories_table.put_item(Item={$$$})
+    - pattern: $REDIS.set($KEY, $VALUE)
+    - pattern: $VECTOR.upsert($$$)
+  not:
+    has:
+      stopBy: end
+      any:
+        - pattern: agent_id=$$$
+        - pattern: tenant_id=$$$
+        - pattern: namespace=$$$
+        - pattern: "$KEY = f\"{$NAMESPACE}/{$$$}\""

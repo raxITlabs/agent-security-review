@@ -1,0 +1,17 @@
+id: sign.mcp-client-without-server-allowlist
+language: python
+severity: warning
+message: |-
+  MCP client connects to a server URL from a variable without an allowlist check. Trusts arbitrary MCP servers.
+  Architectural fix: maintain allowlist of approved MCP server URLs; reject unlisted endpoints (Shift 2).
+metadata:
+  shift: sign
+  component: mcp
+  framework: msrc-prompts-become-shells
+  references:
+    - https://www.microsoft.com/en-us/security/blog/2026/05/07/prompts-become-shells-rce-vulnerabilities-ai-agent-frameworks/
+rule:
+  any:
+    - pattern: ClientSession($URL)
+    - pattern: MCPClient($URL)
+    - pattern: stdio_client($CMD)

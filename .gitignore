@@ -6,3 +6,9 @@ fixtures/_cloned/
 *.tmp
 *.log
 manifest.json
+
+# Skill-creator dev artifacts (eval fixtures with planted vulns + run workspace) — not shipped
+skill-dev/
+# Skill runtime rule cache (fetched from GitHub on demand)
+plugins/agent-code-scanner/skills/scan-agent-code/.cache/
+findings.json

@@ -1,0 +1,33 @@
+id: sign.mcp-tool-without-allowlist
+language: python
+severity: warning
+message: |-
+  MCP tool function lacks allowlist / validation of URL or path parameters. SSRF / path traversal risk.
+  Architectural fix: validate URLs against allowlist; canonicalize paths (Shift 2).
+metadata:
+  shift: sign
+  component: mcp
+  framework: semgrep-ai-best-practices
+  references:
+    - https://modelcontextprotocol.io/specification/draft/basic/security_best_practices
+rule:
+  all:
+    - kind: function_definition
+    - has:
+        kind: decorator
+        regex: "@(server|mcp|app)\\.tool"
+    - has:
+        stopBy: end
+        any:
+          - pattern: requests.get($URL)
+          - pattern: requests.post($URL)
+          - pattern: httpx.get($URL)
+          - pattern: urllib.request.urlopen($URL)
+    - not:
+        has:
+          stopBy: end
+          any:
+            - pattern: urlparse($$$)
+            - pattern: validate_url($$$)
+            - pattern: $$$.startswith($$$)
+            - pattern: if $URL in ALLOWED_URLS

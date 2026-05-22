@@ -1,0 +1,36 @@
+id: scope.agent-without-bounded-loop
+language: python
+severity: warning
+message: |-
+  Agent loop has no max_iterations / max_turns bound. Risks unbounded loop / denial-of-wallet.
+  Architectural fix: cap agent steps and budget per task (Shift 1, Scope).
+metadata:
+  shift: scope
+  component: agent
+  framework: openai-agents-sdk-best-practices
+  references:
+    - https://platform.openai.com/docs/guides/agents
+rule:
+  any:
+    - all:
+        - pattern: AgentExecutor($$$)
+        - not:
+            has:
+              stopBy: end
+              any:
+                - pattern: max_iterations=$$$
+                - pattern: max_execution_time=$$$
+    - all:
+        - pattern: initialize_agent($$$)
+        - not:
+            has:
+              stopBy: end
+              pattern: max_iterations=$$$
+    - all:
+        - pattern: Agent(model=$M, tools=$T, $$$)
+        - not:
+            has:
+              stopBy: end
+              any:
+                - pattern: max_turns=$$$
+                - pattern: max_iterations=$$$

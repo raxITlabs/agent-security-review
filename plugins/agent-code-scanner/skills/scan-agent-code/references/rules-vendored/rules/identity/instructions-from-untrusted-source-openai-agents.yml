@@ -1,0 +1,33 @@
+id: sign.openai-agents-instructions-from-untrusted-source
+language: python
+severity: warning
+message: |-
+  Agent(instructions=...) is built from a value read at call site
+  (file, URL, env, user input). Risk of instruction injection
+  influencing tool selection or output safety. Architectural fix:
+  load instructions from a versioned, signed source under change
+  control (Shift 2).
+metadata:
+  shift: sign
+  component: agent-config
+  framework: camel-confused-deputy
+  references:
+    - https://arxiv.org/abs/2503.18813
+    - https://openai.github.io/openai-agents-python/agents/
+rule:
+  all:
+    - any:
+        - pattern: Agent($$$, instructions=$X)
+        - pattern: Agent(instructions=$X, $$$)
+        - pattern: Agent(instructions=$X)
+    - has:
+        stopBy: end
+        any:
+          - pattern: $Y.read()
+          - pattern: open($$$)
+          - pattern: requests.get($$$).text
+          - pattern: requests.get($$$).json()
+          - pattern: httpx.get($$$).text
+          - pattern: os.environ.get($$$)
+          - pattern: os.environ[$$$]
+          - pattern: os.getenv($$$)

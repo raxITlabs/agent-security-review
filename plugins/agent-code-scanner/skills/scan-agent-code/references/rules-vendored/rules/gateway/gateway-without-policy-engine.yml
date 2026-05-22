@@ -1,0 +1,34 @@
+id: stop.gateway-without-policy-engine
+language: python
+severity: warning
+message: |-
+  FastAPI / Flask MCP gateway endpoint registered without policy engine import (Cedar / OPA / AWS Verified Permissions).
+  Architectural fix: every gateway must consult a deny-by-default policy engine (Shift 3).
+metadata:
+  shift: stop
+  component: gateway
+  framework: aws-cedar-agentcore
+  references:
+    - https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/policy-common-patterns.html
+rule:
+  all:
+    - kind: module
+    - has:
+        stopBy: end
+        any:
+          - pattern: from fastapi import $$$
+          - pattern: from flask import $$$
+    - has:
+        stopBy: end
+        any:
+          - pattern: tool_call
+          - pattern: invoke_tool
+          - pattern: dispatch_tool
+    - not:
+        has:
+          stopBy: end
+          any:
+            - pattern: import cedarpy
+            - pattern: from cedar import $$$
+            - pattern: import opa
+            - pattern: AuthorizationManagedQuery($$$)

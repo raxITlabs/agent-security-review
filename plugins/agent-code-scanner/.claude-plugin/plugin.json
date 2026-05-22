@@ -1,0 +1,11 @@
+{
+  "name": "agent-code-scanner",
+  "description": "Scan AI-agent, LLM, and MCP code for security vulnerabilities using the raxIT agent-code-scanner-rules pack (ast-grep). Pulls the latest rules from GitHub at runtime, with a bundled offline fallback.",
+  "version": "0.1.0",
+  "author": {
+    "name": "raxIT"
+  },
+  "homepage": "https://github.com/raxITlabs/agent-code-scanner-rules",
+  "repository": "https://github.com/raxITlabs/agent-code-scanner-rules",
+  "license": "Proprietary"
+}

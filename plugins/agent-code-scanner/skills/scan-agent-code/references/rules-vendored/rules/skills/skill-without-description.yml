@@ -1,0 +1,23 @@
+id: scope.skill-without-description
+language: python
+severity: info
+message: |-
+  Skill / tool function lacks docstring or description. LLM cannot reason about when to call it; defaults to over-use.
+  Architectural fix: every tool needs an explicit description bounding its purpose (Shift 1).
+metadata:
+  shift: scope
+  component: skills
+  framework: openai-agents-sdk-best-practices
+  references:
+    - https://platform.openai.com/docs/guides/agents
+rule:
+  all:
+    - kind: function_definition
+    - has:
+        kind: decorator
+        regex: "@(tool|function_tool)"
+    - not:
+        has:
+          kind: expression_statement
+          has:
+            kind: string

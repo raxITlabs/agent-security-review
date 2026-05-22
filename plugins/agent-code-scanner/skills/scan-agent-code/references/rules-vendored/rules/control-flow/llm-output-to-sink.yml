@@ -1,0 +1,12 @@
+id: stop.llm-output-to-dangerous-sink
+language: python
+severity: error
+message: |-
+  f-string SQL execution flows from agent-driven path. LLM-driven SQL injection sink.
+  Architectural fix: parameterized queries plus reference monitor at tool boundary (Shift 3).
+metadata:
+  shift: stop
+  references:
+    - https://arxiv.org/abs/2403.04651
+rule:
+  pattern: cursor.execute(f"$$$")

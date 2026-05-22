@@ -1,0 +1,40 @@
+id: stop.openai-agents-tool-without-policy-gate
+language: python
+severity: error
+message: |-
+  Function decorated with @function_tool dispatches without a policy /
+  authorization check. Injected LLM output can invoke any registered
+  tool. Architectural fix: insert reference monitor (Cedar / IAM /
+  authZ) before the tool body (Shift 3).
+metadata:
+  shift: stop
+  component: tool-dispatcher
+  framework: msrc-prompts-become-shells
+  references:
+    - https://www.microsoft.com/en-us/security/blog/2026/05/07/prompts-become-shells-rce-vulnerabilities-ai-agent-frameworks/
+    - https://openai.github.io/openai-agents-python/tools/
+rule:
+  all:
+    - kind: decorated_definition
+    - has:
+        stopBy: end
+        any:
+          - pattern: "@function_tool"
+          - pattern: "@function_tool($$$)"
+          - pattern: "@tool"
+          - pattern: "@tool($$$)"
+    - has:
+        kind: function_definition
+        stopBy: end
+    - not:
+        has:
+          stopBy: end
+          any:
+            - pattern: check_permission($$$)
+            - pattern: authorize($$$)
+            - pattern: require_auth($$$)
+            - pattern: policy.check($$$)
+            - pattern: assert_permission($$$)
+            - pattern: assert_auth($$$)
+            - pattern: has_permission($$$)
+            - pattern: $CTX.user.has_permission($$$)

@@ -1,0 +1,14 @@
+{
+  "name": "raxitlabs",
+  "owner": {
+    "name": "raxIT"
+  },
+  "description": "raxIT security tooling for AI agents",
+  "plugins": [
+    {
+      "name": "agent-code-scanner",
+      "source": "./plugins/agent-code-scanner",
+      "description": "Scan AI-agent / LLM / MCP code for security vulnerabilities using the raxIT rule pack (ast-grep). Rules are pulled live from GitHub."
+    }
+  ]
+}

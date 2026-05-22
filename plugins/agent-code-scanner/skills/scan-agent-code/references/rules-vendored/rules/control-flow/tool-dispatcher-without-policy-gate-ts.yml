@@ -1,0 +1,37 @@
+id: stop.tool-dispatcher-without-policy-gate-ts
+language: typescript
+severity: error
+message: |-
+  Tool execute() handler dispatches without a policy / authorization check. Injected LLM
+  output can invoke any registered tool. Architectural fix: insert reference monitor
+  (Cedar / IAM / authZ) before dispatch (Shift 3).
+metadata:
+  shift: stop
+  component: control-flow
+  framework: msrc-prompts-become-shells
+  references:
+    - https://www.microsoft.com/en-us/security/blog/2026/05/07/prompts-become-shells-rce-vulnerabilities-ai-agent-frameworks/
+rule:
+  all:
+    - kind: pair
+    - has:
+        kind: property_identifier
+        regex: '^execute$'
+    - has:
+        any:
+          - kind: arrow_function
+          - kind: function_expression
+    - not:
+        has:
+          stopBy: end
+          any:
+            - pattern: checkPermission($$$)
+            - pattern: authorize($$$)
+            - pattern: requireAuth($$$)
+            - pattern: $$$.authorize($$$)
+            - pattern: policy.check($$$)
+            - pattern: $$$.isAuthorized($$$)
+            - pattern: assertPermission($$$)
+            - pattern: assertAuth($$$)
+            - pattern: hasPermission($$$)
+            - pattern: $$$.hasPermission($$$)
