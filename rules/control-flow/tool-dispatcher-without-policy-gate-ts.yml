@@ -35,3 +35,5 @@ rule:
             - pattern: assertAuth($$$)
             - pattern: hasPermission($$$)
             - pattern: $$$.hasPermission($$$)
+            - pattern: gov.decide($$$)
+            - pattern: $$$.decide($$$)
