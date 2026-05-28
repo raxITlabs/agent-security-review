@@ -1,0 +1,15 @@
+id: scope.god-agent-tool-count-ts
+language: typescript
+severity: warning
+message: |-
+  Tool registration via the agent SDK. Many registrations in one module is the
+  God Agent pattern — one agent with broad capability.
+  Architectural fix: split into polyphonic specialized agents (Shift 1).
+metadata:
+  shift: scope
+  component: agent
+  framework: meta-rule-of-two
+  references:
+    - https://arxiv.org/abs/2503.18813
+rule:
+  pattern: tool($$$)
