@@ -17,11 +17,11 @@
 # asserted per-rule when several rules evaluate it (e.g. a URL-validated tool that
 # is SSRF-safe but still lacks a principal param).
 #
-# This pins the true-positive / false-positive boundary, so a future rule edit
-# that re-broadens or re-breaks a pattern fails CI here.
-#
 # Fixtures that can't carry inline comment tags (e.g. JSON config) use a sidecar
 # `<fixture>.expected.json` mapping {ruleId: exact-count} for that one file.
+#
+# This pins the true-positive / false-positive boundary, so a future rule edit
+# that re-broadens or re-breaks a pattern fails CI here.
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -30,12 +30,18 @@ SGCONFIG="$REPO_ROOT/sgconfig.yml"
 
 command -v ast-grep >/dev/null 2>&1 || { echo "ERROR: ast-grep not installed"; exit 1; }
 
-findings_json="$(ast-grep scan --json --config "$SGCONFIG" "$CORPUS" 2>/dev/null || true)"
+# Pass findings to Python via a TEMP FILE, not an env var. On Linux a single env
+# string is capped at 128 KB (MAX_ARG_STRLEN), so the full-corpus JSON blew up as
+# "Argument list too long" in CI (macOS has no such cap, so it passed locally).
+FINDINGS_FILE="$(mktemp)"
+trap 'rm -f "$FINDINGS_FILE"' EXIT
+ast-grep scan --json --config "$SGCONFIG" "$CORPUS" > "$FINDINGS_FILE" 2>/dev/null || true
 
-FINDINGS_JSON="$findings_json" CORPUS="$CORPUS" python3 - <<'PY'
+FINDINGS_FILE="$FINDINGS_FILE" CORPUS="$CORPUS" python3 - <<'PY'
 import json, os, sys, glob
 
-findings = json.loads(os.environ["FINDINGS_JSON"] or "[]")
+_raw = open(os.environ["FINDINGS_FILE"], encoding="utf-8").read().strip()
+findings = json.loads(_raw) if _raw else []
 
 # Each finding covers an inclusive 1-based line range [start, end].
 spans = []  # (basename, start, end, ruleId)
@@ -70,16 +76,16 @@ for exp_path in sorted(glob.glob(os.path.join(os.environ["CORPUS"], "*.expected.
         checked += 1
         got = actual.get(rid, 0)
         if got != want:
-            fails.append(f"  {fixture}  expected {want}× {rid}, got {got}")
+            fails.append(f"  {fixture}  expected {want}x {rid}, got {got}")
     # also flag unexpected findings of config-rule ids not listed
     for rid, got in actual.items():
         if rid not in expected:
             checked += 1
-            fails.append(f"  {fixture}  unexpected {got}× {rid} (not in .expected.json)")
+            fails.append(f"  {fixture}  unexpected {got}x {rid} (not in .expected.json)")
 
 for path in sorted(glob.glob(os.path.join(os.environ["CORPUS"], "*"))):
     name = os.path.basename(path)
-    if name.endswith(".expected.json"):
+    if name.endswith(".expected.json") or os.path.isdir(path):
         continue
     for i, text in enumerate(open(path, encoding="utf-8", errors="ignore"), start=1):
         stripped = text.rstrip()
@@ -114,5 +120,5 @@ print(f"precision corpus: {checked} tagged assertions checked, {len(fails)} fail
 if fails:
     print("\n".join(fails))
     sys.exit(1)
-print("✓ all precision expectations met")
+print("all precision expectations met")
 PY
