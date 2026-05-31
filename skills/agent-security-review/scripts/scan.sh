@@ -52,3 +52,8 @@ fi
 
 # --include-metadata so the report can group by component / architectural shift.
 ast-grep scan --config "${ROOT}/sgconfig.yml" --json --include-metadata ${GLOBS[@]+"${GLOBS[@]}"} "$TARGET"
+
+# NOTE: ast-grep has no markdown parser, so prompt-injection planted in the agent
+# instruction surface (.cursorrules / *.mdc / SKILL.md / AGENTS.md / CLAUDE.md) is
+# invisible above. Run scan-markdown.sh separately to cover it:
+#   bash "${SKILL_DIR}/scripts/scan-markdown.sh" "$TARGET" | uv run "${SKILL_DIR}/scripts/report.py" -

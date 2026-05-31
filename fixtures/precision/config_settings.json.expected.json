@@ -1,0 +1,5 @@
+{
+  "sign.agent-permission-bypass-config": 5,
+  "sign.mcp-server-insecure-transport-config": 1,
+  "sign.plaintext-secret-in-config": 1
+}

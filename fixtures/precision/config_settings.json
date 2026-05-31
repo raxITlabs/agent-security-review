@@ -1,0 +1,16 @@
+{
+  "_comment": "Precision fixture for config-surface rules (Cursor/Claude Code). ast-grep JSON has no line comments, so EXPECT tags live in sibling _expect_* keys and are asserted by a dedicated checker, not check-precision.sh.",
+  "permissions": {"defaultMode": "bypassPermissions"},
+  "dangerously-skip-permissions": true,
+  "cursor.agent.yoloMode": true,
+  "autoRunMode": "all",
+  "sandbox": false,
+  "safeMode": true,
+  "normalSetting": "https://api.example.com",
+  "mcpServers": {
+    "remote_insecure": {"url": "http://internal-mcp:8080/sse"},
+    "remote_secure": {"url": "https://mcp.example.com/sse"},
+    "leaky": {"command": "npx", "args": ["srv"], "env": {"GITHUB_TOKEN": "ghp_AbCdEf0123456789xyzQR"}},
+    "clean": {"command": "npx", "args": ["srv"], "env": {"BASE_URL": "https://ok.example.com"}}
+  }
+}

@@ -1,0 +1,19 @@
+id: sign.mcp-server-insecure-transport-config
+language: json
+severity: warning
+message: |-
+  MCP server configured over a plaintext http:// transport (not https/stdio). Tool
+  traffic — including injected tool calls and their results — is interceptable and tamperable.
+  Architectural fix: use https or a local stdio transport for MCP servers (Shift 2).
+metadata:
+  shift: sign
+  component: config
+  confidence: medium
+  framework: msrc-prompts-become-shells
+  references:
+    - https://modelcontextprotocol.io/specification/draft/basic/security_best_practices
+rule:
+  kind: pair
+  all:
+    - has: { field: key, regex: "(?i)(url|endpoint|serverUrl|baseUrl)" }
+    - has: { field: value, regex: "http://" }

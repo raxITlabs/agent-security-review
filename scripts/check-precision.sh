@@ -19,6 +19,9 @@
 #
 # This pins the true-positive / false-positive boundary, so a future rule edit
 # that re-broadens or re-breaks a pattern fails CI here.
+#
+# Fixtures that can't carry inline comment tags (e.g. JSON config) use a sidecar
+# `<fixture>.expected.json` mapping {ruleId: exact-count} for that one file.
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -49,9 +52,36 @@ def rules_covering(name, line):
     return {rid for (n, s, e, rid) in spans if n == name and s <= line <= e}
 
 fails, checked = [], 0
+
+# Sidecar-expectations mode: <fixture>.expected.json -> {ruleId: exact count on
+# that file}. For fixtures (e.g. JSON config) that can't hold inline tags.
+def counts_for(name):
+    c = {}
+    for (n, s, e, rid) in spans:
+        if n == name:
+            c[rid] = c.get(rid, 0) + 1
+    return c
+
+for exp_path in sorted(glob.glob(os.path.join(os.environ["CORPUS"], "*.expected.json"))):
+    fixture = os.path.basename(exp_path)[: -len(".expected.json")]
+    expected = json.load(open(exp_path))
+    actual = counts_for(fixture)
+    for rid, want in expected.items():
+        checked += 1
+        got = actual.get(rid, 0)
+        if got != want:
+            fails.append(f"  {fixture}  expected {want}× {rid}, got {got}")
+    # also flag unexpected findings of config-rule ids not listed
+    for rid, got in actual.items():
+        if rid not in expected:
+            checked += 1
+            fails.append(f"  {fixture}  unexpected {got}× {rid} (not in .expected.json)")
+
 for path in sorted(glob.glob(os.path.join(os.environ["CORPUS"], "*"))):
     name = os.path.basename(path)
-    for i, text in enumerate(open(path, encoding="utf-8"), start=1):
+    if name.endswith(".expected.json"):
+        continue
+    for i, text in enumerate(open(path, encoding="utf-8", errors="ignore"), start=1):
         stripped = text.rstrip()
         # Find a trailing marker, optionally scoped to a rule id.
         marker = None
