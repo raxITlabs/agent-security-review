@@ -34,13 +34,14 @@ fixtures:
     expected_findings:
       "scope.god-agent-tool-count": 1                       # one Tool() in a2a/langchain_client.py
       "sign.mcp-client-without-server-allowlist": 1         # MCP client connecting to gateway URL without allowlist
-      # Added by openai-agents-rules-batch-1: aeon's a2a/openai_agents_client.py
-      # uses Runner.run(...) without max_turns or timeout, and @function_tool
-      # without a policy gate. These are real findings — not noise.
+      # aeon's a2a/openai_agents_client.py uses Runner.run(...) without max_turns
+      # or timeout. Real findings — not noise.
       "scope.openai-agents-runner-without-max-turns": 1     # Runner.run in a2a/openai_agents_client.py
       "scope.openai-agents-runner-without-timeout": 1       # same call, missing timeout
-      "stop.openai-agents-tool-without-policy-gate": 1      # @function_tool without auth check
-      # Revived by the decorated_definition anchor fix: the @function_tool in
-      # a2a/openai_agents_client.py has no principal/ctx param. This rule matched
-      # nothing before the fix (wrong AST kind), so it was absent from this list.
+      # aeon's @function_tool (aeon_token_report) has no principal/ctx param.
+      # Revived by the decorated_definition anchor fix (matched nothing before).
+      # NOTE: it does NOT trigger stop.openai-agents-tool-without-policy-gate —
+      # that rule was scoped to tools with a VISIBLE dangerous side effect, and
+      # this tool delegates its HTTP call to a helper (_call_aeon). The ungated
+      # tool is still surfaced here, at advisory confidence, by the principal rule.
       "sign.tool-without-principal-context": 1

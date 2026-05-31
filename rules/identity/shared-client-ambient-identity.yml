@@ -1,14 +1,26 @@
 id: sign.shared-client-ambient-identity
 language: python
-severity: warning
+severity: info
 message: |-
-  Client object constructed at module scope. Every tool call inherits the same ambient identity (Confused Deputy).
-  Architectural fix: construct per-task with scoped credentials / capability warrant (Shift 2).
+  Client built at module scope, so every tool call shares one ambient identity
+  (Confused Deputy). This is advisory: module-scope construction is also the
+  common, framework-recommended pattern (e.g. a thread-safe boto3 client), so it's
+  only a real risk for multi-tenant agents that should scope credentials per task.
+  Architectural fix (if multi-tenant): construct per task with a scoped capability warrant (Shift 2).
 metadata:
   shift: sign
+  component: identity
+  confidence: low
   framework: camel-confused-deputy
   references:
     - https://arxiv.org/abs/2503.18813
+# Downgraded from warning to info + confidence:low. In the cross-framework audit
+# this rule was the #2 source of volume (34 findings, 15%) and on Bedrock it was
+# the single biggest noise source — 27 of 47 findings — firing on the
+# AWS-recommended module-scope `boto3.client(...)`. Detection is unchanged so the
+# architectural lesson stays available, but it no longer competes with real
+# warnings/errors. A future split could raise confidence when the client also
+# carries inline credentials (the unambiguous baked-in-identity case).
 rule:
   all:
     - any:

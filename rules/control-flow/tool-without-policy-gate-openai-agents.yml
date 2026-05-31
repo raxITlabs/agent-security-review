@@ -2,17 +2,24 @@ id: stop.openai-agents-tool-without-policy-gate
 language: python
 severity: error
 message: |-
-  Function registered as an LLM tool (@function_tool in the OpenAI Agents SDK,
-  or @tool in LangChain) dispatches without a policy / authorization check.
-  Injected LLM output can invoke any registered tool. Architectural fix: insert a
-  reference monitor (Cedar / IAM / authZ) before the tool body (Shift 3).
+  Function registered as an LLM tool (@function_tool in the OpenAI Agents SDK, or
+  @tool in LangChain) performs a side effect — network, state change, file, shell,
+  or DB write — with no policy / authorization check first. Injected LLM output can
+  drive the tool. Architectural fix: insert a reference monitor (Cedar / IAM /
+  authZ) before the side effect (Shift 3).
 metadata:
   shift: stop
   component: tool-dispatcher
+  confidence: medium
   framework: msrc-prompts-become-shells
   references:
     - https://www.microsoft.com/en-us/security/blog/2026/05/07/prompts-become-shells-rce-vulnerabilities-ai-agent-frameworks/
     - https://openai.github.io/openai-agents-python/tools/
+# Scoped to tools that actually DO something dangerous. The old rule fired on
+# EVERY @tool/@function_tool lacking a literal authorize() call — 59 findings
+# (26% of all output) in the audit, mostly read-only tools (get_weather, add).
+# Requiring a side-effecting op in the body cuts that noise while keeping the real
+# ungated-dispatch risk (a tool that pays/sends/writes/execs with no gate).
 rule:
   all:
     - kind: decorated_definition
@@ -26,6 +33,32 @@ rule:
     - has:
         kind: function_definition
         stopBy: end
+    # Body must contain a real side effect — otherwise it's not the lethal pattern.
+    - has:
+        stopBy: end
+        any:
+          - pattern: requests.$M($$$)
+          - pattern: httpx.$M($$$)
+          - pattern: urllib.request.urlopen($$$)
+          - pattern: $C.post($$$)
+          - pattern: $C.put($$$)
+          - pattern: $C.delete($$$)
+          - pattern: $C.send_message($$$)
+          - pattern: $C.send($$$)
+          - pattern: send_email($$$)
+          - pattern: subprocess.$M($$$)
+          - pattern: os.system($$$)
+          - pattern: eval($$$)
+          - pattern: exec($$$)
+          - pattern: $C.execute($$$)
+          - pattern: $C.run($$$)
+          - pattern: $C.query($$$)
+          - pattern: $C.put_item($$$)
+          - pattern: $C.upsert($$$)
+          - pattern: $C.save($$$)
+          - pattern: open($$$)
+          - pattern: boto3.client($$$)
+    # ...and no authorization gate / principal context anywhere in the tool.
     - not:
         has:
           stopBy: end
@@ -33,8 +66,17 @@ rule:
             - pattern: check_permission($$$)
             - pattern: authorize($$$)
             - pattern: require_auth($$$)
+            - pattern: require_capability($$$)
             - pattern: policy.check($$$)
+            - pattern: $$$.decide($$$)
+            - pattern: gov.decide($$$)
             - pattern: assert_permission($$$)
             - pattern: assert_auth($$$)
             - pattern: has_permission($$$)
             - pattern: $CTX.user.has_permission($$$)
+            - pattern: check_scope($$$)
+            # Framework-idiomatic identity threading via a context param/type.
+            # NOTE: a bare-identifier `pattern:` does NOT match an identifier used
+            # only in a type annotation — must use kind:identifier + regex here.
+            - { kind: identifier, regex: "^(RunContextWrapper|RunnableConfig|InjectedState)$" }
+            - { kind: identifier, regex: "^(principal|context)$" }
