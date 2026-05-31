@@ -1,12 +1,27 @@
 #!/usr/bin/env bash
-# Precision regression check for the heuristic rules that were prone to false
-# positives (credentials, module-scope env secrets, tool dispatch, RAG).
+# Precision regression check for the heuristic rules that are prone to false
+# positives or that were silently broken (credentials, module-scope env secrets,
+# tool dispatch, RAG, and the decorator-anchored MCP / gateway / principal rules).
 #
 # Unlike run-fixtures.sh (which clones whole repos and compares per-rule totals),
-# this asserts behaviour line-by-line on a small hand-written corpus: every line
-# tagged `EXPECT_MATCH` must produce a finding, every `EXPECT_NONE` must not.
-# That pins the exact true-positive / false-positive boundary, so a future rule
-# edit that re-broadens a pattern fails CI here.
+# this asserts behaviour at the line level on a small hand-written corpus:
+#
+#   # EXPECT_MATCH            -> some rule must fire covering this line
+#   # EXPECT_NONE             -> NO rule may fire covering this line
+#   # EXPECT_MATCH:rule-id    -> that specific rule must fire covering this line
+#   # EXPECT_NONE:rule-id     -> that specific rule must NOT fire covering this line
+#
+# "Covering" means the finding's start..end range includes the tagged line — a
+# finding on a decorated function spans the whole `decorated_definition`, so the
+# tag can sit on the relevant body line. The `:rule-id` form lets one function be
+# asserted per-rule when several rules evaluate it (e.g. a URL-validated tool that
+# is SSRF-safe but still lacks a principal param).
+#
+# This pins the true-positive / false-positive boundary, so a future rule edit
+# that re-broadens or re-breaks a pattern fails CI here.
+#
+# Fixtures that can't carry inline comment tags (e.g. JSON config) use a sidecar
+# `<fixture>.expected.json` mapping {ruleId: exact-count} for that one file.
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -18,37 +33,84 @@ command -v ast-grep >/dev/null 2>&1 || { echo "ERROR: ast-grep not installed"; e
 findings_json="$(ast-grep scan --json --config "$SGCONFIG" "$CORPUS" 2>/dev/null || true)"
 
 FINDINGS_JSON="$findings_json" CORPUS="$CORPUS" python3 - <<'PY'
-import json, os, re, sys, glob
+import json, os, sys, glob
 
 findings = json.loads(os.environ["FINDINGS_JSON"] or "[]")
-hit = set()  # (basename, line) that produced at least one finding
+
+# Each finding covers an inclusive 1-based line range [start, end].
+spans = []  # (basename, start, end, ruleId)
 for f in findings:
     name = os.path.basename(f.get("file", ""))
-    line = (f.get("range") or {}).get("start", {}).get("line")
-    if line is not None:
-        hit.add((name, line + 1))  # ast-grep lines are 0-based
+    rng = f.get("range") or {}
+    s = (rng.get("start") or {}).get("line")
+    e = (rng.get("end") or {}).get("line", s)
+    if s is None:
+        continue
+    spans.append((name, s + 1, e + 1, f.get("ruleId", "")))
 
-fails = []
-checked = 0
+def rules_covering(name, line):
+    return {rid for (n, s, e, rid) in spans if n == name and s <= line <= e}
+
+fails, checked = [], 0
+
+# Sidecar-expectations mode: <fixture>.expected.json -> {ruleId: exact count on
+# that file}. For fixtures (e.g. JSON config) that can't hold inline tags.
+def counts_for(name):
+    c = {}
+    for (n, s, e, rid) in spans:
+        if n == name:
+            c[rid] = c.get(rid, 0) + 1
+    return c
+
+for exp_path in sorted(glob.glob(os.path.join(os.environ["CORPUS"], "*.expected.json"))):
+    fixture = os.path.basename(exp_path)[: -len(".expected.json")]
+    expected = json.load(open(exp_path))
+    actual = counts_for(fixture)
+    for rid, want in expected.items():
+        checked += 1
+        got = actual.get(rid, 0)
+        if got != want:
+            fails.append(f"  {fixture}  expected {want}× {rid}, got {got}")
+    # also flag unexpected findings of config-rule ids not listed
+    for rid, got in actual.items():
+        if rid not in expected:
+            checked += 1
+            fails.append(f"  {fixture}  unexpected {got}× {rid} (not in .expected.json)")
+
 for path in sorted(glob.glob(os.path.join(os.environ["CORPUS"], "*"))):
     name = os.path.basename(path)
-    for i, text in enumerate(open(path, encoding="utf-8"), start=1):
-        # An assertion is a trailing marker comment (e.g. `... # EXPECT_MATCH`),
-        # not prose. Match only when the marker is the last token on the line, so
-        # the file's own header comments documenting the convention don't count.
+    if name.endswith(".expected.json"):
+        continue
+    for i, text in enumerate(open(path, encoding="utf-8", errors="ignore"), start=1):
         stripped = text.rstrip()
-        want_match = stripped.endswith("EXPECT_MATCH")
-        want_none = stripped.endswith("EXPECT_NONE")
-        if not (want_match or want_none):
+        # Find a trailing marker, optionally scoped to a rule id.
+        marker = None
+        for tag in ("EXPECT_MATCH", "EXPECT_NONE"):
+            idx = stripped.rfind(tag)
+            if idx == -1:
+                continue
+            rest = stripped[idx + len(tag):]
+            # accept "" (line end) or ":rule-id" at the very end of the line
+            if rest == "" or (rest.startswith(":") and " " not in rest):
+                marker = (tag, rest[1:] if rest.startswith(":") else None)
+                break
+        if marker is None:
             continue
+        tag, rid = marker
         checked += 1
-        got = (name, i) in hit
-        if want_match and not got:
-            fails.append(f"  {name}:{i}  EXPECT_MATCH but no finding  -> {text.strip()}")
-        if want_none and got:
-            fails.append(f"  {name}:{i}  EXPECT_NONE but matched (false positive)  -> {text.strip()}")
+        covering = rules_covering(name, i)
+        if rid:
+            got = rid in covering
+        else:
+            got = len(covering) > 0
+        scope = f" [{rid}]" if rid else ""
+        if tag == "EXPECT_MATCH" and not got:
+            fails.append(f"  {name}:{i}  EXPECT_MATCH{scope} but no such finding  -> {text.strip()}")
+        if tag == "EXPECT_NONE" and got:
+            hitlist = rid or ",".join(sorted(covering))
+            fails.append(f"  {name}:{i}  EXPECT_NONE{scope} but matched by {hitlist}  -> {text.strip()}")
 
-print(f"precision corpus: {checked} tagged lines checked, {len(fails)} failure(s)")
+print(f"precision corpus: {checked} tagged assertions checked, {len(fails)} failure(s)")
 if fails:
     print("\n".join(fails))
     sys.exit(1)

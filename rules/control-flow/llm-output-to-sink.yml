@@ -2,11 +2,34 @@ id: stop.llm-output-to-dangerous-sink
 language: python
 severity: error
 message: |-
-  f-string SQL execution flows from agent-driven path. LLM-driven SQL injection sink.
-  Architectural fix: parameterized queries plus reference monitor at tool boundary (Shift 3).
+  Value reaches a code-execution or injection sink (eval, exec, os.system, a shell
+  subprocess, or an f-string SQL execute). In an agent this is the
+  LLM-output-to-RCE / SQL-injection path.
+  Architectural fix: never pass model/tool output to a code or shell sink; use
+  parameterized queries and a reference monitor at the tool boundary (Shift 3).
 metadata:
   shift: stop
+  component: control-flow
+  confidence: high
+  framework: deepmind-camel
   references:
     - https://arxiv.org/abs/2403.04651
+    - https://www.microsoft.com/en-us/security/blog/2026/05/07/prompts-become-shells-rce-vulnerabilities-ai-agent-frameworks/
+# The old rule was a single literal `cursor.execute(f"$$$")` — it required the
+# receiver to be named `cursor` and fired on almost nothing (2/226 in the audit)
+# despite corpora full of eval/exec/os.system/shell on model output. Broaden to
+# the real code/shell/SQL sink set. eval/exec/os.system/shell=True are dangerous
+# regardless of receiver; the SQL execute is generalized off the `cursor` name.
 rule:
-  pattern: cursor.execute(f"$$$")
+  any:
+    - pattern: eval($$$)
+    - pattern: exec($$$)
+    - pattern: os.system($$$)
+    - pattern: os.popen($$$)
+    - pattern: subprocess.run($$$, shell=True)
+    - pattern: subprocess.call($$$, shell=True)
+    - pattern: subprocess.Popen($$$, shell=True)
+    - pattern: subprocess.check_output($$$, shell=True)
+    - pattern: $CUR.execute(f"$$$")
+    - pattern: $CUR.executescript(f"$$$")
+    - pattern: $DB.run(f"$$$")

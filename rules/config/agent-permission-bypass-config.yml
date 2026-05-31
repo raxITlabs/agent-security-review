@@ -1,0 +1,35 @@
+id: sign.agent-permission-bypass-config
+language: json
+severity: error
+message: |-
+  Agent config disables the permission / approval gate (bypassPermissions,
+  dangerously-skip-permissions, YOLO / auto-run-all, or sandbox:false). The deny-by-default
+  guard that stops an injected agent from running arbitrary tools/commands is turned off.
+  Architectural fix: keep an approval gate in production agent configs; never ship YOLO / bypass (Shift 2).
+metadata:
+  shift: sign
+  component: config
+  confidence: high
+  framework: anthropic-claude-code-best-practices
+  references:
+    - https://docs.claude.com/en/docs/claude-code/security
+    - https://docs.claude.com/en/docs/claude-code/settings
+# Cursor and Claude Code are config surfaces, not app code — their highest-impact
+# risk (auto-run / permission bypass) lives in JSON settings that NO ast-grep rule
+# parsed before. ast-grep has no markdown parser, so .cursorrules/SKILL.md prose
+# injection is handled by a grep pre-pass in scan.sh, not here.
+rule:
+  kind: pair
+  any:
+    # permission mode explicitly set to bypass
+    - all:
+        - has: { field: key, regex: "(?i)(defaultMode|permission_?mode)" }
+        - has: { field: value, regex: "bypassPermissions" }
+    # boolean danger flags flipped on
+    - all:
+        - has: { field: key, regex: "(?i)(dangerously-?skip-?permissions|yolo_?mode|autoRunMode|auto_?approve|autoApproveTools|bypassPermissions)" }
+        - has: { field: value, regex: "(?i)(true|all|always)" }
+    # sandbox explicitly disabled
+    - all:
+        - has: { field: key, regex: "(?i)^.*sandbox.*$" }
+        - has: { field: value, regex: "false" }

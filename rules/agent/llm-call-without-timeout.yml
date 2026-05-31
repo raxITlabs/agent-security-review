@@ -2,27 +2,47 @@ id: scope.llm-call-without-timeout
 language: python
 severity: warning
 message: |-
-  LLM API call has no explicit timeout. Denial-of-wallet risk from runaway requests.
-  Architectural fix: set per-request timeout aligned with cost budget (Shift 1).
+  LLM call / client has no explicit timeout. Denial-of-wallet risk from runaway requests.
+  Architectural fix: set a per-request timeout aligned with the cost budget (Shift 1).
 metadata:
   shift: scope
   component: agent
+  confidence: medium
   maestro_layer: L1   # Foundation Models — DoS via computational exhaustion
   framework: maestro-l1
   references:
     - https://cloudsecurityalliance.org/blog/2025/02/06/agentic-ai-threat-modeling-framework-maestro
     - https://arxiv.org/abs/2508.10043
 rule:
-  all:
-    - any:
-        - pattern: $CLIENT.chat.completions.create($$$)
-        - pattern: $CLIENT.messages.create($$$)
-        - pattern: $CLIENT.complete($$$)
-        - pattern: bedrock.invoke_model($$$)
-    - not:
-        has:
-          stopBy: end
-          any:
-            - pattern: timeout=$$$
-            - pattern: request_timeout=$$$
-            - pattern: max_retries=$$$
+  any:
+    # Raw provider SDK calls.
+    - all:
+        - any:
+            - pattern: $CLIENT.chat.completions.create($$$)
+            - pattern: $CLIENT.messages.create($$$)
+            - pattern: $CLIENT.complete($$$)
+            - pattern: bedrock.invoke_model($$$)
+        - not:
+            has:
+              stopBy: end
+              kind: keyword_argument
+              has: { field: name, regex: "^(timeout|request_timeout|max_retries)$" }
+    # LangChain / LangGraph: the timeout config point is the chat-model constructor
+    # (ChatOpenAI/ChatAnthropic/etc). `.invoke()` itself takes no timeout, so flag a
+    # constructor that omits one. This is the dominant LLM-call shape in LangChain
+    # and was previously invisible (raw-SDK-only patterns).
+    #
+    # NOTE: the exclusion uses `kind: keyword_argument` + field:name — a bare
+    # `pattern: timeout=$$$` does NOT match a keyword_argument node inside a call.
+    - all:
+        - any:
+            - pattern: ChatOpenAI($$$)
+            - pattern: ChatAnthropic($$$)
+            - pattern: ChatBedrock($$$)
+            - pattern: ChatVertexAI($$$)
+            - pattern: ChatGoogleGenerativeAI($$$)
+        - not:
+            has:
+              stopBy: end
+              kind: keyword_argument
+              has: { field: name, regex: "^(timeout|request_timeout|max_retries)$" }
