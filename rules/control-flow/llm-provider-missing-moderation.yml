@@ -1,12 +1,16 @@
 id: stop.llm-provider-missing-moderation
 language: python
-severity: warning
+severity: info
 message: |-
-  LLM chat completion called without input/output moderation. No guardrail layer on prompt or response.
-  Architectural fix: wrap LLM calls with moderation classifier (Llama Guard, OpenAI Moderation, etc.) (Shift 3).
+  LLM call in this function has no input/output moderation classifier. No guardrail
+  layer on the prompt or response. (Advisory: moderation often lives at a different
+  layer — confirm there's a guardrail somewhere on this path.)
+  Architectural fix: wrap LLM calls with a moderation classifier (Llama Guard,
+  OpenAI Moderation, Bedrock Guardrails) (Shift 3).
 metadata:
   shift: stop
   component: control-flow
+  confidence: low
   framework: meta-llamaguard
   references:
     - https://ai.meta.com/research/publications/llama-guard-llm-based-input-output-safeguard-for-human-ai-conversations/
@@ -16,9 +20,14 @@ rule:
     - has:
         stopBy: end
         any:
+          # Raw provider SDK calls.
           - pattern: $CLIENT.chat.completions.create($$$)
           - pattern: $CLIENT.messages.create($$$)
           - pattern: $CLIENT.complete($$$)
+          # LangChain chat-model construction (the Runnable then .invoke()s it).
+          - pattern: ChatOpenAI($$$)
+          - pattern: ChatAnthropic($$$)
+          - pattern: ChatBedrock($$$)
     - not:
         has:
           stopBy: end
@@ -26,5 +35,8 @@ rule:
             - pattern: $$$.moderate($$$)
             - pattern: LlamaGuard($$$)
             - pattern: openai.moderations.create($$$)
+            - pattern: $$$.moderations.create($$$)
             - pattern: PromptGuard($$$)
             - pattern: $$$.classify($$$)
+            - pattern: apply_guardrail($$$)
+            - pattern: guardrailConfig=$$$
