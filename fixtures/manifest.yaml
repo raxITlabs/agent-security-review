@@ -40,3 +40,7 @@ fixtures:
       "scope.openai-agents-runner-without-max-turns": 1     # Runner.run in a2a/openai_agents_client.py
       "scope.openai-agents-runner-without-timeout": 1       # same call, missing timeout
       "stop.openai-agents-tool-without-policy-gate": 1      # @function_tool without auth check
+      # Revived by the decorated_definition anchor fix: the @function_tool in
+      # a2a/openai_agents_client.py has no principal/ctx param. This rule matched
+      # nothing before the fix (wrong AST kind), so it was absent from this list.
+      "sign.tool-without-principal-context": 1

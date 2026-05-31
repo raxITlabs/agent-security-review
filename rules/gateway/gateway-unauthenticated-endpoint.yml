@@ -2,22 +2,26 @@ id: sign.gateway-unauthenticated-endpoint
 language: python
 severity: error
 message: |-
-  Gateway / MCP endpoint defined without authentication dependency. Anyone can invoke tools.
+  Gateway / MCP endpoint defined without an authentication dependency. Anyone can invoke tools.
   Architectural fix: require auth (OAuth, JWT, mTLS, API key) on every endpoint (Shift 2).
 metadata:
   shift: sign
   component: gateway
+  confidence: high
   framework: oauth-2.1-best-practices
   references:
     - https://datatracker.ietf.org/doc/draft-ietf-oauth-v2-1/
+# A decorated route is a `decorated_definition` (the decorator is a SIBLING of the
+# function_definition, not a child). The old rule anchored on
+# `kind: function_definition` with a child decorator, so it matched NO decorated
+# route at all. Anchor with `kind` as the first clause inside `all` and look into
+# the whole node.
 rule:
   all:
-    - kind: function_definition
+    - kind: decorated_definition
     - has:
         kind: decorator
-        any:
-          - regex: "@app\\.(post|get|put|delete)"
-          - regex: "@router\\.(post|get|put|delete)"
+        regex: "(app|router|api)\\.(post|get|put|delete|patch)"
     - not:
         has:
           stopBy: end
@@ -26,4 +30,8 @@ rule:
             - pattern: Depends($AUTH)
             - pattern: api_key_header
             - pattern: verify_token($$$)
-            - pattern: "@requires_auth"
+            - pattern: require_auth
+            - pattern: requires_auth
+            - pattern: $$$.verify_jwt($$$)
+            - pattern: HTTPBearer($$$)
+            - pattern: Security($$$)
