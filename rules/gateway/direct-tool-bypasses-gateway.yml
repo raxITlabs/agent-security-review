@@ -2,7 +2,7 @@ id: stop.direct-tool-bypasses-gateway
 language: python
 severity: error
 message: |-
-  Tool invoked directly without passing through a gateway / reference monitor.
+  Tool invoked by dynamic name without passing through a gateway / reference monitor.
   Architectural fix: route every tool call through a policy-checked gateway (Shift 3).
 metadata:
   shift: stop
@@ -12,7 +12,16 @@ metadata:
     - https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/policy-common-patterns.html
 rule:
   any:
-    - pattern: $TOOLS[$NAME]($ARGS)
+    # See stop.tool-dispatcher-without-policy-gate for the rationale: constrain the
+    # bare `obj[name](args)` shape to tool/registry-like container names so Triton
+    # kernels, CLI dispatch dicts, and test fixtures don't flood the report.
+    - all:
+        - pattern: $TOOLS[$NAME]($ARGS)
+        - has:
+            field: function
+            has:
+              field: value
+              regex: '(?i)(tool|func|handler|action|command|dispatch|registr|skill|agent|plugin|capabilit|executor|router)'
     - pattern: globals()[$NAME]($ARGS)
     - pattern: getattr($MOD, $NAME)($ARGS)
     - pattern: locals()[$NAME]($ARGS)

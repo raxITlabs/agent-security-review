@@ -19,6 +19,9 @@ jobs:
       - name: Run validate-rules.sh
         run: bash scripts/validate-rules.sh
 
+      - name: Check rule counts are current (README + docs)
+        run: python3 scripts/count-rules.py --check
+
   fixtures:
     name: Run rules against fixture corpus
     runs-on: ubuntu-latest
@@ -39,6 +42,9 @@ jobs:
           sudo apt-get update && sudo apt-get install -y jq
       - name: Run fixture tests
         run: bash scripts/run-fixtures.sh
+
+      - name: Run precision regression checks
+        run: bash scripts/check-precision.sh
 
   manifest:
     name: Generate manifest.json
