@@ -6,7 +6,15 @@
 
 <p align="center">
   <a href="https://ast-grep.github.io/">ast-grep</a> rules that catch insecure patterns in AI-agent code — before they ship.<br>
-  <strong>39 rules · 7 components · Python &amp; TypeScript · vendor-neutral</strong>
+  <strong><!-- rules:count -->42 rules · 7 components<!-- /rules:count --> · Python &amp; TypeScript · vendor-neutral</strong>
+</p>
+
+<p align="center">
+  <a href="https://github.com/raxITlabs/agent-security-review/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/raxITlabs/agent-security-review/ci.yml?branch=main&style=flat-square&labelColor=000&label=CI" alt="CI"></a>
+  <img src="https://img.shields.io/badge/Claude_Code-plugin-000?style=flat-square&logo=claude&logoColor=white" alt="Claude Code plugin">
+  <a href="https://ast-grep.github.io/"><img src="https://img.shields.io/badge/powered_by-ast--grep-000?style=flat-square" alt="powered by ast-grep"></a>
+  <!-- rules:badge --><a href="docs/RULES.md"><img src="https://img.shields.io/badge/rules-42-000?style=flat-square&labelColor=000" alt="42 rules"></a><!-- /rules:badge -->
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-000?style=flat-square" alt="MIT license"></a>
 </p>
 
 ---
@@ -23,7 +31,7 @@
 | **skills** | lethal-trifecta tool combos, permission bypass, missing descriptions |
 | **gateway** | unauthenticated endpoints, gateway bypass, missing policy engine |
 
-→ **[Full catalog of all 39 rules](docs/RULES.md)**
+→ **[Full rule catalog](docs/RULES.md)**
 
 ## Quick start
 
@@ -62,11 +70,11 @@ All routes pull the latest rules from this repo at scan time (with an offline fa
 
 ## Docs
 
-- **[Rule catalog](docs/RULES.md)** — all 39 rules, severity, and what each one flags
+- **[Rule catalog](docs/RULES.md)** — every rule, its severity, and what it flags
 - **[Frameworks](docs/FRAMEWORKS.md)** — Scope / Sign / Stop, MAESTRO 7-layer, and source references
 - **[Contributing](docs/CONTRIBUTING.md)** — repo layout, rule schema, how to add a rule
 - **[Release flow](docs/RELEASE.md)** — how merged rules reach the scanners
 
 ## License
 
-Proprietary — internal raxIT use. Rules can be redistributed under raxIT scanner output license.
+[MIT](LICENSE) © raxIT Labs. We run these rules in production and welcome contributions — see **[Contributing](docs/CONTRIBUTING.md)**.

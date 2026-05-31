@@ -2,8 +2,8 @@ id: scope.rag-without-source-attribution
 language: python
 severity: warning
 message: |-
-  RAG retrieval result fed into LLM prompt without source attribution metadata.
-  Indirect prompt injection risk: compromised RAG documents inject instructions invisibly.
+  RAG retrieval result fed into an LLM prompt without source attribution metadata.
+  Indirect prompt injection risk: compromised retrieved documents inject instructions invisibly.
   Architectural fix: tag every retrieved chunk with source URL + trust label; render in prompt (Shift 1).
 metadata:
   shift: scope
@@ -30,3 +30,11 @@ rule:
             has:
               stopBy: end
               pattern: $$$.metadata["source"]
+# `.invoke()` is the generic LangChain Runnable call — it's used for LLMs,
+# graders, and chains, not just retrievers. The old rule fired on any
+# `x = y.invoke(...)` (e.g. `response = grader_model.invoke(messages)` in an eval
+# harness). Constrain the receiver of `.invoke()` to retriever/vector-store-like
+# names so this targets actual retrieval. `similarity_search` is already specific.
+constraints:
+  RETRIEVER:
+    regex: '(?i)(retriev|vector|vectorstore|store|index|search|rag|knowledge|embed|chroma|faiss|pinecone|weaviate|qdrant|milvus|corpus|docstore|kb)'

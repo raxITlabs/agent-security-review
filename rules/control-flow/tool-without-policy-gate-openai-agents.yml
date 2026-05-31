@@ -2,10 +2,10 @@ id: stop.openai-agents-tool-without-policy-gate
 language: python
 severity: error
 message: |-
-  Function decorated with @function_tool dispatches without a policy /
-  authorization check. Injected LLM output can invoke any registered
-  tool. Architectural fix: insert reference monitor (Cedar / IAM /
-  authZ) before the tool body (Shift 3).
+  Function registered as an LLM tool (@function_tool in the OpenAI Agents SDK,
+  or @tool in LangChain) dispatches without a policy / authorization check.
+  Injected LLM output can invoke any registered tool. Architectural fix: insert a
+  reference monitor (Cedar / IAM / authZ) before the tool body (Shift 3).
 metadata:
   shift: stop
   component: tool-dispatcher

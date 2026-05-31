@@ -1,6 +1,8 @@
 # Rule catalog
 
-All 39 rules in the pack, grouped by component. Severity is `error` (block), `warning` (review), or `info`. The `scope` / `sign` / `stop` prefix on each rule ID is its architectural shift — see [Frameworks](FRAMEWORKS.md).
+<!-- rules:count -->42 rules · 7 components<!-- /rules:count --> in the pack, grouped by component. Severity is `error` (block), `warning` (review), or `info`. The `scope` / `sign` / `stop` prefix on each rule ID is its architectural shift — see [Frameworks](FRAMEWORKS.md).
+
+> **Counts are generated.** The numbers above are stamped by `scripts/count-rules.py` straight from the rule files, and CI fails if they drift. Don't hand-edit them.
 
 Rules ending in `-ts` are TypeScript variants of a Python rule; `openai-agents-*` rules target the OpenAI Agents SDK.
 

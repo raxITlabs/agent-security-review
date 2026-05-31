@@ -2,16 +2,30 @@ id: stop.tool-dispatcher-without-policy-gate
 language: python
 severity: error
 message: |-
-  Tool dispatcher invokes tools by name without policy gate. Injected LLM can request any registered tool.
-  Architectural fix: insert reference monitor (Cedar) before dispatch (Shift 3).
+  Tool dispatcher invokes a tool by a dynamic name with no policy gate. An injected or hijacked LLM can request any registered tool.
+  Architectural fix: insert a reference monitor (Cedar / IAM / authZ) before dispatch (Shift 3).
 metadata:
   shift: stop
+  component: control-flow
   framework: msrc-prompts-become-shells
   references:
     - https://www.microsoft.com/en-us/security/blog/2026/05/07/prompts-become-shells-rce-vulnerabilities-ai-agent-frameworks/
 rule:
   any:
-    - pattern: $TOOLS[$NAME]($ARGS)
+    # Noisy branch: bare `obj[name](args)`. This shape is everywhere in non-agent
+    # code — Triton kernel launches `kernel[grid](...)`, CLI dispatch tables
+    # `{...}[args.cmd](...)`, test dicts `m["case"](...)`. Only flag it when the
+    # dispatched container name denotes a tool/function registry, so we catch real
+    # ungated dispatch without drowning numeric / CLI / test code.
+    - all:
+        - pattern: $TOOLS[$NAME]($ARGS)
+        - has:
+            field: function
+            has:
+              field: value
+              regex: '(?i)(tool|func|handler|action|command|dispatch|registr|skill|agent|plugin|capabilit|executor|router)'
+    # High-signal dynamic-name idioms: rare in normal code, classic ungated
+    # dispatch. Kept unconstrained on purpose.
     - pattern: globals()[$NAME]($ARGS)
     - pattern: getattr($MODULE, $NAME)($ARGS)
     - pattern: locals()[$NAME]($ARGS)
