@@ -13,31 +13,44 @@ metadata:
   framework: maestro-l7
   references:
     - https://cloudsecurityalliance.org/blog/2025/02/06/agentic-ai-threat-modeling-framework-maestro
-# The old rule was a generic "requests.post without inline headers=/auth=" detector
-# (20 findings, 9% of audit output) that mislabeled every webhook / telemetry /
-# exfil POST as "agent impersonation". Now require the call to actually look
-# agent-bound — an agent/a2a/run/task/invoke/handoff token in some string of the
-# call (URL path or body key) — so generic outbound POSTs no longer match.
 rule:
   any:
+    # HTTP POST to an agent-bound endpoint via ANY client lib (requests, httpx,
+    # aiohttp session, generic $CLIENT.post) where some string in the call reads
+    # agent-bound, and no auth/header is attached inline.
     - all:
-        - pattern: requests.post($URL, json=$BODY)
+        - any:
+            - pattern: requests.post($URL, json=$BODY)
+            - pattern: $CLIENT.post($URL, json=$BODY)
+            - pattern: requests.post($URL, json=$BODY, $$$REST)
+            - pattern: $CLIENT.post($URL, json=$BODY, $$$REST)
         - has:
             stopBy: end
             kind: string
-            regex: '(?i)(agent|a2a|/run|/task|/invoke|/message|skill|handoff|peer)'
+            regex: '(?i)(agent|a2a|run|task|invoke|message|skill|handoff|peer|dispatch)'
         - not:
             has:
               stopBy: end
               any:
-                - pattern: headers=$HEADERS
-                - pattern: auth=$AUTH
+                - kind: keyword_argument
+                  regex: '^(headers|auth|cert|token)='
+                - has:
+                    stopBy: end
+                    kind: string
+                    regex: '(?i)authorization|bearer'
+    # Agent-client message send with no signature or headers attached.
     - all:
-        - pattern: $CLIENT.send_message($MSG)
+        - any:
+            - pattern: $CLIENT.send_message($$$MSG)
+            - pattern: $CLIENT.send_task($$$MSG)
+            - pattern: $CLIENT.send_to_agent($$$MSG)
+            - pattern: $CLIENT.dispatch($$$MSG)
         - not:
             has:
               stopBy: end
               any:
-                - pattern: $MSG.signature
+                - pattern: $X.signature
                 - pattern: sign_message($$$)
+                - pattern: sign($$$)
                 - pattern: headers=$HEADERS
+                - pattern: signature=$SIG

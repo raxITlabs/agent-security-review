@@ -18,10 +18,12 @@ rule:
         - pattern: generateText($$$)
     - has:
         stopBy: end
-        kind: property_identifier
-        regex: '^tools$'
+        any:
+          - { kind: property_identifier, regex: '^tools$' }
+          - { kind: shorthand_property_identifier, regex: '^tools$' }
     - not:
         has:
           stopBy: end
-          kind: property_identifier
-          regex: '^(maxSteps|maxToolRoundtrips|stopWhen)$'
+          any:
+            - { kind: property_identifier, regex: '^(maxSteps|maxToolRoundtrips|stopWhen)$' }
+            - { kind: shorthand_property_identifier, regex: '^(maxSteps|maxToolRoundtrips|stopWhen)$' }

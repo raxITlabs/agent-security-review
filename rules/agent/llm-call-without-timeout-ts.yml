@@ -25,5 +25,6 @@ rule:
     - not:
         has:
           stopBy: end
-          kind: property_identifier
-          regex: '^(abortSignal|signal|timeout|request_timeout)$'
+          any:
+            - { kind: property_identifier, regex: '^(abortSignal|signal|timeout|request_timeout|requestTimeout|maxRetries)$' }
+            - { kind: shorthand_property_identifier, regex: '^(abortSignal|signal|timeout|request_timeout|requestTimeout|maxRetries)$' }

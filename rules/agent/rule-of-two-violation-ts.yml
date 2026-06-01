@@ -17,25 +17,38 @@ metadata:
 rule:
   all:
     - kind: program
+    # [A] untrusted input ingestion: fetch / http client GET / search / retrieve / read
     - has:
         stopBy: end
         any:
-          - pattern: governed("vendor.invoice.read", $$$)
-          - pattern: governed("market.oracle.read", $$$)
           - pattern: fetch($$$)
+          - pattern: $$$.fetch($$$)
           - pattern: $$$.fetchUrl($$$)
+          - pattern: $$$.get($$$)
+          - pattern: $$$.search($$$)
+          - pattern: $$$.retrieve($$$)
+          - pattern: $$$.invoke($$$)
+          - pattern: $$$.readEmail($$$)
+          - pattern: governed($A, $$$)
+    # [B] sensitive data access: db query / secret / vault read
     - has:
         stopBy: end
         any:
-          - pattern: governed("stripe.customers.read", $$$)
-          - pattern: governed("treasury.balance.read", $$$)
-          - pattern: governed("wallet.state.read", $$$)
-          - pattern: governed("counterparty.read", $$$)
           - pattern: $$$.query($$$)
+          - pattern: $$$.getSecret($$$)
+          - pattern: $$$.getSecretValue($$$)
+          - pattern: $$$.execute($$$)
+          - pattern: governed($B, $$$)
+    # [C] state change / external comm: POST / send / settle / write
     - has:
         stopBy: end
         any:
-          - pattern: governed("send_email", $$$)
-          - pattern: governed("stripe.payouts", $$$)
-          - pattern: governed("chain.settle", $$$)
+          - pattern: $$$.post($$$)
           - pattern: $$$.sendMail($$$)
+          - pattern: $$$.sendEmail($$$)
+          - pattern: $$$.sendMessage($$$)
+          - pattern: $$$.postMessage($$$)
+          - pattern: $$$.createPr($$$)
+          - pattern: $$$.settle($$$)
+          - pattern: fetch($URL, $OPTS)
+          - pattern: governed($C, $$$)

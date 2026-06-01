@@ -11,17 +11,12 @@ metadata:
   framework: aws-cedar-agentcore
   references:
     - https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/policy-common-patterns.html
-# Anchor on decorated_definition (kind first inside all) so all tool-decorator
-# shapes are matched (@tool, @function_tool, @mcp.tool(), @server.tool). The old
-# function_definition anchor matched none of them. Confidence is low: many tools
-# legitimately thread identity via framework context (RunnableConfig,
-# RunContextWrapper, InjectedState) — treat as advisory, not a blocker.
 rule:
   all:
     - kind: decorated_definition
     - has:
         kind: decorator
-        regex: "(tool|function_tool)"
+        regex: '(^|[^A-Za-z_])(tool|function_tool)(\b|$)'
     - has:
         kind: function_definition
     - not:

@@ -12,3 +12,6 @@ skill-dev/
 # Skill runtime rule cache (fetched from GitHub on demand)
 skills/agent-security-review/.cache/
 findings.json
+
+# local eval/audit artifacts (contain sample secret tokens used as rule fixtures)
+agent-security-review-workspace/

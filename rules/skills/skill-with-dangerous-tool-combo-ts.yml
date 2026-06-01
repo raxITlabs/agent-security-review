@@ -19,15 +19,29 @@ rule:
         any:
           - pattern: execSync($$$)
           - pattern: exec($$$)
+          - pattern: execFile($$$)
+          - pattern: execFileSync($$$)
+          - pattern: spawn($$$)
           - pattern: spawnSync($$$)
+          - pattern: $SH.spawn($$$)
+          - pattern: $SH.exec($$$)
     - has:
         stopBy: end
         any:
           - pattern: fetch($$$)
-          - pattern: $$$OBJ.post($$$)
-          - pattern: $$$OBJ.put($$$)
+          - pattern: $NETOBJ.post($$$)
+          - pattern: $NETOBJ.put($$$)
+          - pattern: $NETOBJ.request($$$)
+          - pattern: axios($$$)
+          - pattern: got($$$)
     - has:
         stopBy: end
         any:
           - pattern: writeFileSync($$$)
-          - pattern: $$$OBJ.writeFile($$$)
+          - pattern: appendFileSync($$$)
+          - pattern: writeFile($$$)
+          - pattern: appendFile($$$)
+          - pattern: createWriteStream($$$)
+          - pattern: $FSOBJ.writeFile($$$)
+          - pattern: $FSOBJ.appendFile($$$)
+          - pattern: $FSOBJ.write($$$)

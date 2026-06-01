@@ -8,33 +8,30 @@ message: |-
 metadata:
   shift: scope
   component: memory
-  maestro_layer: L2   # Data Operations — RAG poisoning + L1 indirect prompt injection
+  maestro_layer: L2
   framework: maestro-l2-rag-poisoning
   references:
     - https://cloudsecurityalliance.org/blog/2025/02/06/agentic-ai-threat-modeling-framework-maestro
     - https://simonwillison.net/2023/Apr/14/worst-that-can-happen/
 rule:
-  any:
-    - all:
+  all:
+    - any:
         - pattern: $RESULTS = $RETRIEVER.invoke($$$)
-        - not:
-            has:
-              stopBy: end
-              any:
-                - pattern: $$$.metadata["source"]
-                - pattern: $$$.metadata.get("source")
-                - pattern: source_attribution
-    - all:
-        - pattern: $RESULTS = $VECTOR.similarity_search($$$)
-        - not:
-            has:
-              stopBy: end
-              pattern: $$$.metadata["source"]
-# `.invoke()` is the generic LangChain Runnable call — it's used for LLMs,
-# graders, and chains, not just retrievers. The old rule fired on any
-# `x = y.invoke(...)` (e.g. `response = grader_model.invoke(messages)` in an eval
-# harness). Constrain the receiver of `.invoke()` to retriever/vector-store-like
-# names so this targets actual retrieval. `similarity_search` is already specific.
+        - pattern: $RESULTS = $RETRIEVER.similarity_search($$$)
+        - pattern: $RESULTS = $RETRIEVER.similarity_search_with_score($$$)
+        - pattern: $RESULTS = $RETRIEVER.max_marginal_relevance_search($$$)
+        - pattern: $RESULTS = $RETRIEVER.get_relevant_documents($$$)
+        - pattern: $RESULTS = $RETRIEVER.aget_relevant_documents($$$)
+        - pattern: $RESULTS = $RETRIEVER.retrieve($$$)
+        - pattern: $RESULTS = $RETRIEVER.query($$$)
+        - pattern: $RESULTS = $RETRIEVER.search($$$)
+    - not:
+        has:
+          stopBy: end
+          any:
+            - pattern: $$$.metadata["source"]
+            - pattern: $$$.metadata.get("source")
+            - pattern: source_attribution
 constraints:
   RETRIEVER:
-    regex: '(?i)(retriev|vector|vectorstore|store|index|search|rag|knowledge|embed|chroma|faiss|pinecone|weaviate|qdrant|milvus|corpus|docstore|kb)'
+    regex: '(?i)(retriev|vector|vectorstore|store|index|search|rag|knowledge|embed|chroma|faiss|pinecone|weaviate|qdrant|milvus|corpus|docstore|kb|collection|query_engine)'

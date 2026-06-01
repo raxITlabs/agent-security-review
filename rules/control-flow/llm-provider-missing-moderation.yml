@@ -4,7 +4,7 @@ severity: info
 message: |-
   LLM call in this function has no input/output moderation classifier. No guardrail
   layer on the prompt or response. (Advisory: moderation often lives at a different
-  layer — confirm there's a guardrail somewhere on this path.)
+  layer - confirm there's a guardrail somewhere on this path.)
   Architectural fix: wrap LLM calls with a moderation classifier (Llama Guard,
   OpenAI Moderation, Bedrock Guardrails) (Shift 3).
 metadata:
@@ -20,14 +20,23 @@ rule:
     - has:
         stopBy: end
         any:
-          # Raw provider SDK calls.
           - pattern: $CLIENT.chat.completions.create($$$)
           - pattern: $CLIENT.messages.create($$$)
+          - pattern: $CLIENT.responses.create($$$)
           - pattern: $CLIENT.complete($$$)
-          # LangChain chat-model construction (the Runnable then .invoke()s it).
+          - pattern: $CLIENT.generate_content($$$)
+          - pattern: completion($$$)
+          - pattern: acompletion($$$)
           - pattern: ChatOpenAI($$$)
           - pattern: ChatAnthropic($$$)
           - pattern: ChatBedrock($$$)
+          - pattern: ChatGoogleGenerativeAI($$$)
+          - pattern: ChatVertexAI($$$)
+          - pattern: ChatGroq($$$)
+          - pattern: ChatMistralAI($$$)
+          - pattern: ChatCohere($$$)
+          - pattern: ChatFireworks($$$)
+          - pattern: ChatTogether($$$)
     - not:
         has:
           stopBy: end

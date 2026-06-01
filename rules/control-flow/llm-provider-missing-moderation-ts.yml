@@ -23,15 +23,22 @@ rule:
         any:
           - pattern: streamText($$$)
           - pattern: generateText($$$)
+          - pattern: streamObject($$$)
+          - pattern: generateObject($$$)
           - pattern: $CLIENT.chat.completions.create($$$)
           - pattern: $CLIENT.messages.create($$$)
+          - pattern: $CLIENT.responses.create($$$)
+          - pattern: $CLIENT.generateContent($$$)
     - not:
         has:
           stopBy: end
           any:
             - pattern: $$$.moderations.create($$$)
+            - pattern: moderate($$$)
             - pattern: $$$.moderate($$$)
             - pattern: LlamaGuard($$$)
             - pattern: PromptGuard($$$)
+            - pattern: classify($$$)
             - pattern: $$$.classify($$$)
+            - pattern: applyGuardrail($$$)
             - pattern: $$$.applyGuardrail($$$)

@@ -13,5 +13,17 @@ metadata:
 rule:
   any:
     - pattern: $MEM.add_memory($$$)
+    - pattern: $MEM.save_memory($$$)
+    - pattern: $MEM.create_event($$$)
     - pattern: $MEM.save_context($$$)
-    - pattern: ConversationBufferMemory($$$).save_context($$$)
+    - pattern: $MEM.add($$$)
+    - pattern: $MEM.put($$$)
+    - pattern: $MEM.set($$$)
+    - pattern: $MEM.hset($$$)
+    - pattern: $MEM.put_item($$$)
+    - pattern: $MEM.upsert($$$)
+    - pattern: $MEM.add_texts($$$)
+    - pattern: $MEM.add_documents($$$)
+constraints:
+  MEM:
+    regex: '(?i)(mem|memor|store|client|table|index|vector|redis|cache|context|history|kb|knowledge|collection|conversation|recall|agent)'

@@ -18,12 +18,29 @@ rule:
         any:
           - pattern: from fastapi import $$$
           - pattern: from flask import $$$
+    # Tool-dispatch signal across frameworks/wordings: a call or registry lookup
+    # whose name reads like tool invocation/execution/routing, not plain CRUD.
     - has:
         stopBy: end
         any:
           - pattern: tool_call
           - pattern: invoke_tool
           - pattern: dispatch_tool
+          - pattern: call_tool
+          - pattern: execute_tool
+          - pattern: run_tool
+          - pattern: $REG[$NAME]($$$)
+          - pattern: $REG.get($NAME)($$$)
+          - all:
+              - kind: subscript
+              - has:
+                  field: value
+                  regex: '(?i)(tool|handler|skill|action|dispatch|registr|capabilit|executor|router|plugin)'
+          - all:
+              - kind: call
+              - has:
+                  field: function
+                  regex: '(?i)(invoke|dispatch|execute|call|run|handle)_?(tool|skill|action|handler|capability)'
     - not:
         has:
           stopBy: end
@@ -31,4 +48,8 @@ rule:
             - pattern: import cedarpy
             - pattern: from cedar import $$$
             - pattern: import opa
+            - pattern: from opa import $$$
+            - pattern: import oso
             - pattern: AuthorizationManagedQuery($$$)
+            - pattern: is_authorized($$$)
+            - pattern: check_policy($$$)

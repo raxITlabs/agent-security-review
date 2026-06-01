@@ -14,22 +14,28 @@ metadata:
   framework: camel-confused-deputy
   references:
     - https://arxiv.org/abs/2503.18813
-# Downgraded from warning to info + confidence:low. In the cross-framework audit
-# this rule was the #2 source of volume (34 findings, 15%) and on Bedrock it was
-# the single biggest noise source — 27 of 47 findings — firing on the
-# AWS-recommended module-scope `boto3.client(...)`. Detection is unchanged so the
-# architectural lesson stays available, but it no longer competes with real
-# warnings/errors. A future split could raise confidence when the client also
-# carries inline credentials (the unambiguous baked-in-identity case).
 rule:
   all:
     - any:
         - pattern: $X = boto3.client($$$)
         - pattern: $X = boto3.resource($$$)
+        - pattern: $X = boto3.Session($$$)
         - pattern: $X = Anthropic($$$)
-        - pattern: $X = OpenAI($$$)
         - pattern: $X = anthropic.Anthropic($$$)
+        - pattern: $X = AsyncAnthropic($$$)
+        - pattern: $X = AnthropicBedrock($$$)
+        - pattern: $X = OpenAI($$$)
         - pattern: $X = openai.OpenAI($$$)
+        - pattern: $X = AsyncOpenAI($$$)
+        - pattern: $X = AzureOpenAI($$$)
+        - pattern: $X = genai.GenerativeModel($$$)
+        - pattern: $X = genai.Client($$$)
+        - pattern: $X = cohere.Client($$$)
+        - pattern: $X = cohere.ClientV2($$$)
+        - pattern: $X = MistralClient($$$)
+        - pattern: $X = Mistral($$$)
+        - pattern: $X = Groq($$$)
+        - pattern: $X = Together($$$)
     - not:
         inside:
           stopBy: end

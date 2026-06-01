@@ -14,20 +14,16 @@ metadata:
   references:
     - https://docs.claude.com/en/docs/claude-code/security
     - https://docs.claude.com/en/docs/claude-code/settings
-# Cursor and Claude Code are config surfaces, not app code — their highest-impact
-# risk (auto-run / permission bypass) lives in JSON settings that NO ast-grep rule
-# parsed before. ast-grep has no markdown parser, so .cursorrules/SKILL.md prose
-# injection is handled by a grep pre-pass in scan.sh, not here.
 rule:
   kind: pair
   any:
-    # permission mode explicitly set to bypass
+    # permission/approval mode explicitly set to a bypass value
     - all:
-        - has: { field: key, regex: "(?i)(defaultMode|permission_?mode)" }
-        - has: { field: value, regex: "bypassPermissions" }
+        - has: { field: key, regex: "(?i)(defaultMode|permission_?mode|approval_?-?mode|approval_?policy)" }
+        - has: { field: value, regex: "(?i)(bypassPermissions|full-?auto|yolo|never|always|auto)" }
     # boolean danger flags flipped on
     - all:
-        - has: { field: key, regex: "(?i)(dangerously-?skip-?permissions|yolo_?mode|autoRunMode|auto_?approve|autoApproveTools|bypassPermissions)" }
+        - has: { field: key, regex: "(?i)(dangerously-?skip-?permissions|yolo_?mode|auto_?run_?(mode|all)?|auto_?approve|autoApproveTools|bypassPermissions|skip_?confirmation|disable_?approval(prompt)?)" }
         - has: { field: value, regex: "(?i)(true|all|always)" }
     # sandbox explicitly disabled
     - all:

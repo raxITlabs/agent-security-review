@@ -12,6 +12,21 @@ metadata:
     - https://docs.claude.com/en/docs/claude-code/security
 rule:
   any:
-    - pattern: permission_mode="bypassPermissions"
-    - pattern: dangerously_skip_permissions=True
-    - pattern: ClaudeAgentOptions(permission_mode="bypassPermissions", $$$)
+    # keyword arg in ANY call: permission_mode/permissionMode = "bypassPermissions"
+    - kind: keyword_argument
+      all:
+        - has: { field: name, regex: "^(permission_mode|permissionMode)$" }
+        - has: { field: value, regex: "bypassPermissions" }
+    # keyword arg: dangerously_skip_permissions=True
+    - kind: keyword_argument
+      all:
+        - has: { field: name, regex: "dangerously_skip_permissions" }
+        - has: { field: value, regex: "^True$" }
+    # dict literal: {"permissionMode": "bypassPermissions"}
+    - kind: pair
+      all:
+        - has: { field: key, regex: "permission_?[Mm]ode" }
+        - has: { field: value, regex: "bypassPermissions" }
+    # CLI flag string anywhere (subprocess args / command string)
+    - kind: string
+      regex: "dangerously-skip-permissions"

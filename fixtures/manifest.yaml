@@ -45,3 +45,10 @@ fixtures:
       # this tool delegates its HTTP call to a helper (_call_aeon). The ungated
       # tool is still surfaced here, at advisory confidence, by the principal rule.
       "sign.tool-without-principal-context": 1
+      # Recovered by the overfit-audit generalization pass: aeon's A2A example
+      # clients (openai_agents/langchain/autogen/crewai) all POST to the agent
+      # GATEWAY with no auth header — real agent-to-agent-without-auth findings the
+      # narrower rule missed. And crewai_task.py's Agent(role=,goal=) has no
+      # max_iter — a real CrewAI unbounded-loop the LangChain-only shape missed.
+      "sign.a2a-communication-without-auth": 8
+      "scope.agent-without-bounded-loop": 1

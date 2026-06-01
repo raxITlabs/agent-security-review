@@ -16,12 +16,37 @@ rule:
     - has:
         stopBy: end
         any:
-          - pattern: $MEM.load_memory_variables($$$)
-          - pattern: $MEM.get_memories($$$)
-          - pattern: $VECTOR.similarity_search($$$)
+          - pattern: $$$.load_memory_variables($$$)
+          - pattern: $$$.get_memories($$$)
+          - pattern: $$$.list_events($$$)
+          - pattern: $$$.similarity_search($$$)
+          - pattern: $$$.get_relevant_documents($$$)
+          - pattern: $$$.search($$$)
+          - all:
+              - any:
+                  - pattern: $MEM.invoke($$$)
+                  - pattern: $MEM.retrieve($$$)
+                  - pattern: $MEM.query($$$)
+                  - pattern: $MEM.get($$$)
+                  - pattern: $MEM.get_item($$$)
+                  - pattern: $MEM.hget($$$)
+              - has:
+                  field: function
+                  has:
+                    field: object
+                    regex: '(?i)(mem|memor|store|vector|retriev|index|redis|cache|history|kb|knowledge|collection|conversation|recall|docstore|rag|chroma|faiss|pinecone|weaviate|qdrant|milvus|table)'
     - has:
         stopBy: end
         any:
           - pattern: requests.post($$$)
           - pattern: requests.put($$$)
+          - pattern: requests.get($$$)
+          - pattern: requests.patch($$$)
+          - pattern: httpx.post($$$)
+          - pattern: httpx.get($$$)
+          - pattern: urllib.request.urlopen($$$)
+          - pattern: $CLIENT.post($$$)
+          - pattern: $CLIENT.send($$$)
           - pattern: $$$.send_email($$$)
+          - pattern: $$$.send_message($$$)
+          - pattern: $$$.sendmail($$$)

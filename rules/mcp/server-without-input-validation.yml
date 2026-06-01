@@ -12,22 +12,21 @@ metadata:
   references:
     - https://www.microsoft.com/en-us/security/blog/2026/05/07/prompts-become-shells-rce-vulnerabilities-ai-agent-frameworks/
     - https://modelcontextprotocol.io/specification/draft/basic/security_best_practices
-# Anchor on decorated_definition (kind first inside all) so the FastMCP
-# call-decorator `@mcp.tool()` (and `@server.tool` / `@app.tool`, with or without
-# parens) is actually matched — the old `kind: function_definition` anchor matched
-# no decorated function.
 rule:
   all:
     - kind: decorated_definition
     - has:
         kind: decorator
-        regex: "(server|mcp|app|tool_router|fastmcp)\\.tool"
+        regex: "(server|mcp|app|tool_router|fastmcp)\\.(tool|call_tool)\\b|^@tool\\b"
     - has:
         stopBy: end
         any:
           - pattern: subprocess.$M($$$)
           - pattern: os.system($$$)
           - pattern: os.popen($$$)
+          - pattern: os.exec$M($$$)
           - pattern: eval($$$)
           - pattern: exec($$$)
           - pattern: $CUR.execute(f"$$$")
+          - pattern: $CUR.execute($A + $B)
+          - pattern: $CUR.executescript($$$)

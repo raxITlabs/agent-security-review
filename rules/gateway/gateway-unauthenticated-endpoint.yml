@@ -11,27 +11,30 @@ metadata:
   framework: oauth-2.1-best-practices
   references:
     - https://datatracker.ietf.org/doc/draft-ietf-oauth-v2-1/
-# A decorated route is a `decorated_definition` (the decorator is a SIBLING of the
-# function_definition, not a child). The old rule anchored on
-# `kind: function_definition` with a child decorator, so it matched NO decorated
-# route at all. Anchor with `kind` as the first clause inside `all` and look into
-# the whole node.
 rule:
   all:
     - kind: decorated_definition
+    # HTTP route/endpoint decorator across web frameworks: FastAPI/Starlette/Flask/
+    # Quart (.get/.post/.put/.delete/.patch/.route/.websocket/.add_api_route),
+    # Flask Blueprint, Django REST (api_view) - regardless of app variable name.
+    # (MCP @mcp.tool decorators are covered by sign.mcp-tool-without-allowlist.)
     - has:
         kind: decorator
-        regex: "(app|router|api)\\.(post|get|put|delete|patch)"
+        regex: '\.(post|get|put|delete|patch|route|websocket|api_route|add_api_route)\b|api_view'
     - not:
         has:
           stopBy: end
           any:
-            - pattern: Depends(get_current_user)
-            - pattern: Depends($AUTH)
+            - pattern: Depends($$$)
+            - pattern: Security($$$)
+            - pattern: Authorizer($$$)
             - pattern: api_key_header
             - pattern: verify_token($$$)
+            - pattern: verify_jwt($$$)
+            - pattern: $$$.verify_jwt($$$)
             - pattern: require_auth
             - pattern: requires_auth
-            - pattern: $$$.verify_jwt($$$)
+            - pattern: login_required
+            - pattern: jwt_required($$$)
             - pattern: HTTPBearer($$$)
-            - pattern: Security($$$)
+            - pattern: get_current_user

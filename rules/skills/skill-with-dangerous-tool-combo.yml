@@ -20,15 +20,29 @@ rule:
           - pattern: bash_tool
           - pattern: ShellTool($$$)
           - pattern: PythonREPLTool($$$)
+          - pattern: subprocess.run($$$)
+          - pattern: subprocess.call($$$)
+          - pattern: subprocess.Popen($$$)
+          - pattern: os.system($$$)
+          - pattern: os.popen($$$)
+          - pattern: pty.spawn($$$)
     - has:
         stopBy: end
         any:
-          - pattern: requests.post($$$)
-          - pattern: requests.put($$$)
+          - pattern: requests.$METHOD($$$)
+          - pattern: httpx.$METHOD($$$)
+          - pattern: aiohttp.$$$
+          - pattern: urllib.request.urlopen($$$)
           - pattern: smtplib.$$$
+          - pattern: $CLIENT.post($$$)
+          - pattern: $CLIENT.put($$$)
     - has:
         stopBy: end
         any:
           - pattern: open($FILE, "w")
           - pattern: open($FILE, "a")
+          - pattern: open($FILE, "wb")
           - pattern: FileWriterTool($$$)
+          - pattern: $P.write_text($$$)
+          - pattern: $P.write_bytes($$$)
+          - pattern: $F.write($$$)

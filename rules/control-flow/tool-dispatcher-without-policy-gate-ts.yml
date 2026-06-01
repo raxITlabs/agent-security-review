@@ -13,14 +13,21 @@ metadata:
     - https://www.microsoft.com/en-us/security/blog/2026/05/07/prompts-become-shells-rce-vulnerabilities-ai-agent-frameworks/
 rule:
   all:
-    - kind: pair
-    - has:
-        kind: property_identifier
-        regex: '^execute$'
-    - has:
-        any:
-          - kind: arrow_function
-          - kind: function_expression
+    - any:
+        - all:
+            - kind: pair
+            - has:
+                kind: property_identifier
+                regex: '^(execute|handler)$'
+            - has:
+                any:
+                  - kind: arrow_function
+                  - kind: function_expression
+        - all:
+            - kind: method_definition
+            - has:
+                kind: property_identifier
+                regex: '^(execute|handler)$'
     - not:
         has:
           stopBy: end

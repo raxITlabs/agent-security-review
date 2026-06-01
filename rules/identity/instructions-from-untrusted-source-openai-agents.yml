@@ -24,10 +24,18 @@ rule:
         stopBy: end
         any:
           - pattern: $Y.read()
+          - pattern: $Y.read_text($$$)
+          - pattern: $Y.read_bytes($$$)
           - pattern: open($$$)
           - pattern: requests.get($$$).text
           - pattern: requests.get($$$).json()
+          - pattern: requests.post($$$).text
           - pattern: httpx.get($$$).text
+          - pattern: httpx.post($$$).text
+          - pattern: $C.get($$$).text
           - pattern: os.environ.get($$$)
           - pattern: os.environ[$$$]
           - pattern: os.getenv($$$)
+          - pattern: $DB.query($$$)
+          - pattern: $DB.fetch($$$)
+          - pattern: $DB.execute($$$)

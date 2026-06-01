@@ -11,23 +11,26 @@ metadata:
   framework: semgrep-ai-best-practices
   references:
     - https://modelcontextprotocol.io/specification/draft/basic/security_best_practices
-# Anchor on decorated_definition (kind first inside all) so the FastMCP
-# `@mcp.tool()` call-decorator is matched, not skipped.
 rule:
   all:
     - kind: decorated_definition
     - has:
         kind: decorator
-        regex: "(server|mcp|app|tool_router|fastmcp)\\.tool"
+        regex: "(server|mcp|app|tool_router|fastmcp)\\.(tool|call_tool)\\b|^@tool\\b"
     - has:
         stopBy: end
         any:
-          - pattern: requests.get($URL)
-          - pattern: requests.post($URL)
-          - pattern: requests.request($$$)
-          - pattern: httpx.get($URL)
-          - pattern: httpx.post($URL)
-          - pattern: urllib.request.urlopen($URL)
+          - pattern: requests.$M($$$)
+          - pattern: httpx.$M($$$)
+          - pattern: aiohttp.$M($$$)
+          - pattern: urllib.request.urlopen($$$)
+          - all:
+              - kind: call
+              - regex: "(?i)\\b(session|client|http|conn|c|s)\\.(get|post|put|patch|delete|request)\\("
+              - has:
+                  field: function
+                  kind: attribute
+                  regex: "(?i)\\.(get|post|put|patch|delete|request)$"
     - not:
         has:
           stopBy: end

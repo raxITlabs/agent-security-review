@@ -7,21 +7,38 @@ message: |-
 metadata:
   shift: sign
   component: identity
-  maestro_layer: L2   # Data Operations — tampering in transit
+  maestro_layer: L2
   framework: maestro-l2
   references:
     - https://cloudsecurityalliance.org/blog/2025/02/06/agentic-ai-threat-modeling-framework-maestro
 rule:
-  any:
-    - all:
+  all:
+    - kind: call
+    - any:
         - pattern: psycopg2.connect($$$)
-        - not: { has: { stopBy: end, pattern: sslmode=$$$ } }
-    - all:
+        - pattern: psycopg.connect($$$)
+        - pattern: asyncpg.connect($$$)
         - pattern: pymongo.MongoClient($$$)
-        - not: { has: { stopBy: end, pattern: tls=$$$ } }
-    - all:
+        - pattern: MongoClient($$$)
         - pattern: redis.Redis($$$)
-        - not: { has: { stopBy: end, pattern: ssl=$$$ } }
-    - all:
+        - pattern: redis.StrictRedis($$$)
+        - pattern: Redis($$$)
         - pattern: mysql.connector.connect($$$)
-        - not: { has: { stopBy: end, pattern: ssl_disabled=False } }
+        - pattern: pymysql.connect($$$)
+        - pattern: MySQLdb.connect($$$)
+        - pattern: create_engine($$$)
+        - pattern: create_async_engine($$$)
+        - pattern: aiomysql.connect($$$)
+        - pattern: aiopg.connect($$$)
+    - not:
+        has:
+          stopBy: end
+          kind: keyword_argument
+          has:
+            field: name
+            regex: '(?i)^(sslmode|ssl|tls|use_ssl|ssl_disabled|ssl_ca|ssl_cert|sslrootcert|tlsmode|ssl_context|connect_args)$'
+    - not:
+        has:
+          stopBy: end
+          kind: string
+          regex: '(?i)(sslmode=(require|verify|prefer|allow)|ssl=true|tls=true|tlsmode=|mongodb\+srv|sslrootcert=|requiressl=1|sslmode|use_ssl)'

@@ -11,13 +11,16 @@ metadata:
   references:
     - https://platform.openai.com/docs/guides/agents
 rule:
+  kind: decorated_definition
   all:
-    - kind: function_definition
     - has:
         kind: decorator
-        regex: "@(tool|function_tool)"
-    - not:
-        has:
-          kind: expression_statement
+        regex: "@(tool|function_tool)\\b"
+    - has:
+        kind: function_definition
+        not:
           has:
-            kind: string
+            kind: block
+            has:
+              kind: expression_statement
+              has: { kind: string }

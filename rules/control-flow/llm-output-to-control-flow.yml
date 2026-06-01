@@ -15,25 +15,29 @@ metadata:
     - https://arxiv.org/abs/2503.18813
 rule:
   any:
-    # Inline form: the model call IS the condition.
     - pattern: "if $LLM.invoke($$$): $$$"
     - pattern: "if $LLM.complete($$$): $$$"
     - pattern: "while $LLM.invoke($$$): $$$"
-    # Assign-then-branch (the common real shape): bind the model output to $V, then
-    # branch on $V (or $V.content / .raw / .final_output / a subscript of it). The
-    # $V metavariable link keeps this from firing on arbitrary unrelated branches.
     - kind: function_definition
       all:
         - has:
             stopBy: end
             any:
               - pattern: $V = $LLM.invoke($$$)
+              - pattern: $V = $LLM.ainvoke($$$)
               - pattern: $V = $LLM.complete($$$)
               - pattern: $V = $LLM.run($$$)
+              - pattern: $V = $LLM.generate($$$)
+              - pattern: $V = $LLM.predict($$$)
+              - pattern: $V = $LLM.kickoff($$$)
+              - pattern: $V = $LLM.converse($$$)
               - pattern: $V = $C.chat.completions.create($$$)
               - pattern: $V = $C.messages.create($$$)
+              - pattern: $V = $C.responses.create($$$)
               - pattern: $V = Runner.run($$$)
               - pattern: $V = Runner.run_sync($$$)
+              - pattern: $V = completion($$$)
+              - pattern: $V = acompletion($$$)
         - has:
             stopBy: end
             any:

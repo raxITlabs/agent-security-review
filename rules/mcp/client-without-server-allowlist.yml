@@ -2,7 +2,7 @@ id: sign.mcp-client-without-server-allowlist
 language: python
 severity: warning
 message: |-
-  MCP client connects to a server URL from a variable without an allowlist check. Trusts arbitrary MCP servers.
+  MCP client connects to a server URL/command from a variable without an allowlist check. Trusts arbitrary MCP servers.
   Architectural fix: maintain allowlist of approved MCP server URLs; reject unlisted endpoints (Shift 2).
 metadata:
   shift: sign
@@ -11,7 +11,37 @@ metadata:
   references:
     - https://www.microsoft.com/en-us/security/blog/2026/05/07/prompts-become-shells-rce-vulnerabilities-ai-agent-frameworks/
 rule:
-  any:
-    - pattern: ClientSession($URL)
-    - pattern: MCPClient($URL)
-    - pattern: stdio_client($CMD)
+  kind: call
+  all:
+    - any:
+        - pattern: ClientSession($A)
+        - pattern: MCPClient($A)
+        - pattern: MultiServerMCPClient($A)
+        - pattern: stdio_client($A)
+        - pattern: sse_client($A)
+        - pattern: streamablehttp_client($A)
+        - pattern: streamable_http_client($A)
+        - pattern: MCPServerSse($A)
+        - pattern: MCPServerStdio($A)
+        - pattern: MCPServerStreamableHttp($A)
+        - pattern: Client($A)
+    - has:
+        field: arguments
+        has:
+          kind: identifier
+    - not:
+        has:
+          stopBy: end
+          kind: string
+    - not:
+        inside:
+          stopBy: end
+          kind: function_definition
+          has:
+            stopBy: end
+            any:
+              - pattern: $X in $ALLOW
+              - pattern: ALLOWED_$$$
+              - pattern: $$$.startswith($$$)
+              - pattern: validate_url($$$)
+              - pattern: urlparse($$$)

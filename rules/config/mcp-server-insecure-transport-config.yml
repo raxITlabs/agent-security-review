@@ -15,5 +15,5 @@ metadata:
 rule:
   kind: pair
   all:
-    - has: { field: key, regex: "(?i)(url|endpoint|serverUrl|baseUrl)" }
-    - has: { field: value, regex: "http://" }
+    - has: { field: key, regex: "(?i)(url|uri|endpoint|host|address|origin)" }
+    - has: { field: value, kind: string, regex: "http://" }

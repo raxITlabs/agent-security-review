@@ -12,25 +12,51 @@ metadata:
     - https://platform.openai.com/docs/guides/agents
 rule:
   any:
+    # LangChain AgentExecutor
     - all:
         - pattern: AgentExecutor($$$)
         - not:
             has:
               stopBy: end
-              any:
-                - pattern: max_iterations=$$$
-                - pattern: max_execution_time=$$$
+              kind: keyword_argument
+              has: { field: name, regex: '^(max_iterations|max_execution_time)$' }
+    # LangChain legacy initialize_agent
     - all:
         - pattern: initialize_agent($$$)
         - not:
             has:
               stopBy: end
-              pattern: max_iterations=$$$
+              kind: keyword_argument
+              has: { field: name, regex: '^(max_iterations|max_execution_time)$' }
+    # OpenAI Agents SDK Agent(model=, tools=)
     - all:
         - pattern: Agent(model=$M, tools=$T, $$$)
         - not:
             has:
               stopBy: end
-              any:
-                - pattern: max_turns=$$$
-                - pattern: max_iterations=$$$
+              kind: keyword_argument
+              has: { field: name, regex: '^(max_turns|max_iterations)$' }
+    # LangGraph create_react_agent — bound is recursion_limit
+    - all:
+        - pattern: create_react_agent($$$)
+        - not:
+            has:
+              stopBy: end
+              kind: keyword_argument
+              has: { field: name, regex: '^(recursion_limit|max_iterations)$' }
+    # CrewAI Agent(role=) — bound is max_iter
+    - all:
+        - pattern: Agent(role=$R, $$$)
+        - not:
+            has:
+              stopBy: end
+              kind: keyword_argument
+              has: { field: name, regex: '^(max_iter|max_iterations)$' }
+    # LlamaIndex ReActAgent.from_tools — bound is max_iterations
+    - all:
+        - pattern: ReActAgent.from_tools($$$)
+        - not:
+            has:
+              stopBy: end
+              kind: keyword_argument
+              has: { field: name, regex: '^max_iterations$' }
