@@ -55,12 +55,26 @@ def loc(f):
     return f"{field(f, 'file', default='?')}:{start.get('line', '?')}:{start.get('column', '?')}"
 
 
+def _flow(text):
+    """Collapse the internal newlines a YAML `message: |-` block leaves behind.
+
+    Rule messages are written as folded blocks, so a two-sentence detect arrives
+    as "first sentence.\\nsecond sentence." — printing that verbatim breaks the
+    line mid-finding in the report. Join wrapped lines back into flowing prose.
+    """
+    return " ".join(text.split())
+
+
 def split_fix(message):
+    # Split the detect text from the architectural fix. Prefer the most specific
+    # marker ("Architectural fix:") and fall back to a bare "Fix:" only at a word
+    # boundary, so a stray lowercase "fix:" inside the detect prose can't trigger a
+    # bad split. Both halves are re-flowed to drop block-scalar newlines.
     for marker in ("Architectural fix:", "Fix:"):
-        if marker in message:
-            detect, fix = message.split(marker, 1)
-            return detect.strip(), fix.strip()
-    return message.strip(), ""
+        idx = message.find(marker)
+        if idx != -1:
+            return _flow(message[:idx]), _flow(message[idx + len(marker):])
+    return _flow(message), ""
 
 
 def main():
