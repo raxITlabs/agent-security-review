@@ -41,6 +41,15 @@ def comp_and_shift(f):
     return (meta.get("component") or "other"), shift
 
 
+def confidence(f):
+    """Rule-author confidence: high | medium | low (default medium).
+
+    Heuristic rules carry confidence:low so a low-confidence error reads very
+    differently from a high-confidence one — the count stops lying.
+    """
+    return ((f.get("metadata") or {}).get("confidence") or "medium").lower()
+
+
 def loc(f):
     start = (f.get("range") or {}).get("start") or {}
     return f"{field(f, 'file', default='?')}:{start.get('line', '?')}:{start.get('column', '?')}"
@@ -77,6 +86,14 @@ def main():
     summary = " · ".join(f"{counts[s]} {s}" for s in SEV_ORDER if counts[s])
     print(f"## Security scan: {total} finding(s) — {summary}\n")
 
+    conf_counts = defaultdict(int)
+    for f in findings:
+        conf_counts[confidence(f)] += 1
+    conf_summary = " · ".join(f"{conf_counts[c]} {c}" for c in ("high", "medium", "low") if conf_counts[c])
+    if conf_summary:
+        print(f"_Confidence: {conf_summary}. Low-confidence findings are heuristic — "
+              f"triage before treating as blocking._\n")
+
     for sev in SEV_ORDER:
         if sev not in by_sev:
             continue
@@ -87,7 +104,9 @@ def main():
                 comp_, shift = comp_and_shift(f)
                 detect, fix = split_fix(field(f, "message"))
                 tag = "/".join(x for x in (comp_, shift) if x and x != "other")
-                print(f"- **{rid}**" + (f"  `{tag}`" if tag else ""))
+                conf = confidence(f)
+                conf_badge = "" if conf == "medium" else f"  _(confidence: {conf})_"
+                print(f"- **{rid}**" + (f"  `{tag}`" if tag else "") + conf_badge)
                 print(f"  - {loc(f)}")
                 if detect:
                     print(f"  - {detect}")

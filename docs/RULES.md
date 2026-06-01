@@ -1,6 +1,6 @@
 # Rule catalog
 
-<!-- rules:count -->42 rules · 7 components<!-- /rules:count --> in the pack, grouped by component. Severity is `error` (block), `warning` (review), or `info`. The `scope` / `sign` / `stop` prefix on each rule ID is its architectural shift — see [Frameworks](FRAMEWORKS.md).
+<!-- rules:count -->45 rules · 8 components<!-- /rules:count --> in the pack, grouped by component. Severity is `error` (block), `warning` (review), or `info`. The `scope` / `sign` / `stop` prefix on each rule ID is its architectural shift — see [Frameworks](FRAMEWORKS.md).
 
 > **Counts are generated.** The numbers above are stamped by `scripts/count-rules.py` straight from the rule files, and CI fails if they drift. Don't hand-edit them.
 
@@ -79,3 +79,15 @@ Rules ending in `-ts` are TypeScript variants of a Python rule; `openai-agents-*
 | `sign.gateway-unauthenticated-endpoint` | py | error | Gateway / MCP endpoint with no auth dependency — anyone can invoke tools |
 | `stop.direct-tool-bypasses-gateway` | py | error | Tool invoked directly, bypassing the gateway / reference monitor |
 | `stop.gateway-without-policy-engine` | py | warning | Gateway endpoint with no policy engine (Cedar / OPA / AWS Verified Permissions) |
+
+## Config surface — `rules/config/`
+
+| Rule | Lang | Severity | Flags |
+|---|---|---|---|
+| `sign.agent-permission-bypass-config` | json | error | Agent config disables the approval gate (bypassPermissions / dangerously-skip-permissions / YOLO / auto-run-all / sandbox:false) |
+| `sign.mcp-server-insecure-transport-config` | json | warning | MCP server configured over plaintext `http://` transport |
+| `sign.plaintext-secret-in-config` | json | error | Plaintext credential token committed in an agent / MCP config file |
+
+> Cursor and Claude Code are config surfaces, not app code. ast-grep has no markdown
+> parser, so prompt-injection in `.cursorrules` / `*.mdc` / `SKILL.md` is covered by
+> `scripts/scan-markdown.sh` (a grep pre-pass), not an ast-grep rule.

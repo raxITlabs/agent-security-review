@@ -2,43 +2,39 @@ id: sign.tool-without-principal-context
 language: python
 severity: warning
 message: |-
-  Tool function lacks principal/context/auth parameter. Cannot implement Cedar deny-by-default.
-  Architectural fix: thread per-task identity through tool signatures (Shift 2).
+  Tool function has no principal / context / auth parameter, so a reference monitor cannot do deny-by-default.
+  Architectural fix: thread per-task identity (a principal/context/RunContextWrapper) through the tool signature (Shift 2).
 metadata:
   shift: sign
+  component: identity
+  confidence: low
   framework: aws-cedar-agentcore
   references:
     - https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/policy-common-patterns.html
+# Anchor on decorated_definition (kind first inside all) so all tool-decorator
+# shapes are matched (@tool, @function_tool, @mcp.tool(), @server.tool). The old
+# function_definition anchor matched none of them. Confidence is low: many tools
+# legitimately thread identity via framework context (RunnableConfig,
+# RunContextWrapper, InjectedState) — treat as advisory, not a blocker.
 rule:
-  any:
-    - all:
-        - kind: function_definition
-        - has: { kind: decorator, regex: "@tool" }
-        - not:
-            has:
-              stopBy: end
-              any:
-                - pattern: principal
-                - pattern: ctx.user
-                - pattern: context.user
-                - pattern: authorize($$$)
-                - pattern: check_scope($$$)
-                - pattern: require_capability($$$)
-    - all:
-        - kind: function_definition
-        - has: { kind: decorator, regex: "@(mcp|server|app)\\.tool" }
-        - not:
-            has:
-              stopBy: end
-              any:
-                - pattern: ctx.principal
-                - pattern: authorize($$$)
-    - all:
-        - kind: function_definition
-        - has: { kind: decorator, regex: "@function_tool" }
-        - not:
-            has:
-              stopBy: end
-              any:
-                - pattern: ctx
-                - pattern: authorize($$$)
+  all:
+    - kind: decorated_definition
+    - has:
+        kind: decorator
+        regex: "(tool|function_tool)"
+    - has:
+        kind: function_definition
+    - not:
+        has:
+          stopBy: end
+          any:
+            - pattern: principal
+            - pattern: ctx
+            - pattern: context
+            - pattern: authorize($$$)
+            - pattern: check_scope($$$)
+            - pattern: require_capability($$$)
+            - pattern: RunContextWrapper
+            - pattern: RunnableConfig
+            - pattern: InjectedState
+            - pattern: config

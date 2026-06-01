@@ -2,15 +2,42 @@ id: stop.llm-output-to-control-flow
 language: python
 severity: error
 message: |-
-  LLM call result used directly in control flow. CaMeL violation: untrusted data influences program flow.
-  Architectural fix: use Quarantined LLM that returns typed values; do not branch on raw LLM output (Shift 3).
+  LLM output steers program control flow (a branch/loop condition reads raw model
+  output). CaMeL violation: untrusted model text decides what the program does.
+  Architectural fix: use a Quarantined LLM that returns typed/validated values; do
+  not branch on raw LLM output (Shift 3).
 metadata:
   shift: stop
+  component: control-flow
+  confidence: medium
   framework: deepmind-camel
   references:
     - https://arxiv.org/abs/2503.18813
 rule:
   any:
-    - pattern: 'if $LLM.invoke($$$): $$$'
-    - pattern: 'if $LLM.complete($$$): $$$'
-    - pattern: 'while $LLM.invoke($$$): $$$'
+    # Inline form: the model call IS the condition.
+    - pattern: "if $LLM.invoke($$$): $$$"
+    - pattern: "if $LLM.complete($$$): $$$"
+    - pattern: "while $LLM.invoke($$$): $$$"
+    # Assign-then-branch (the common real shape): bind the model output to $V, then
+    # branch on $V (or $V.content / .raw / .final_output / a subscript of it). The
+    # $V metavariable link keeps this from firing on arbitrary unrelated branches.
+    - kind: function_definition
+      all:
+        - has:
+            stopBy: end
+            any:
+              - pattern: $V = $LLM.invoke($$$)
+              - pattern: $V = $LLM.complete($$$)
+              - pattern: $V = $LLM.run($$$)
+              - pattern: $V = $C.chat.completions.create($$$)
+              - pattern: $V = $C.messages.create($$$)
+              - pattern: $V = Runner.run($$$)
+              - pattern: $V = Runner.run_sync($$$)
+        - has:
+            stopBy: end
+            any:
+              - kind: if_statement
+                has: { stopBy: end, pattern: $V }
+              - kind: while_statement
+                has: { stopBy: end, pattern: $V }

@@ -2,30 +2,42 @@ id: sign.a2a-communication-without-auth
 language: python
 severity: error
 message: |-
-  Agent-to-agent (A2A) message send without authentication header / signature. Agent impersonation risk.
-  Architectural fix: sign every A2A message; verify signature on receive (Shift 2).
+  Agent-to-agent (A2A) message send to an agent endpoint without an auth header /
+  signature. Agent impersonation risk.
+  Architectural fix: sign every A2A message; verify the signature on receive (Shift 2).
 metadata:
   shift: sign
   component: gateway
+  confidence: medium
   maestro_layer: L7
   framework: maestro-l7
   references:
     - https://cloudsecurityalliance.org/blog/2025/02/06/agentic-ai-threat-modeling-framework-maestro
+# The old rule was a generic "requests.post without inline headers=/auth=" detector
+# (20 findings, 9% of audit output) that mislabeled every webhook / telemetry /
+# exfil POST as "agent impersonation". Now require the call to actually look
+# agent-bound — an agent/a2a/run/task/invoke/handoff token in some string of the
+# call (URL path or body key) — so generic outbound POSTs no longer match.
 rule:
   any:
     - all:
-        - pattern: 'requests.post($URL, json=$BODY)'
+        - pattern: requests.post($URL, json=$BODY)
+        - has:
+            stopBy: end
+            kind: string
+            regex: '(?i)(agent|a2a|/run|/task|/invoke|/message|skill|handoff|peer)'
         - not:
             has:
               stopBy: end
               any:
-                - pattern: 'headers=$HEADERS'
-                - pattern: 'auth=$AUTH'
+                - pattern: headers=$HEADERS
+                - pattern: auth=$AUTH
     - all:
-        - pattern: '$CLIENT.send_message($MSG)'
+        - pattern: $CLIENT.send_message($MSG)
         - not:
             has:
               stopBy: end
               any:
-                - pattern: '$MSG.signature'
-                - pattern: 'sign_message($$$)'
+                - pattern: $MSG.signature
+                - pattern: sign_message($$$)
+                - pattern: headers=$HEADERS
