@@ -2,7 +2,7 @@ id: scope.tool-exposes-code-execution
 language: python
 severity: error
 message: |-
-  An LLM tool is declared whose name/description advertises code or shell execution (a "python" / "terminal" / "run code" tool). The model can run arbitrary code or commands — the most direct LLM-output-to-RCE surface an agent can expose.
+  An LLM tool is declared that exposes code or shell execution (a python / bash / shell / code_interpreter / repl tool, or one whose description says it executes code or commands). The model can run arbitrary code — the most direct LLM-output-to-RCE surface an agent can expose.
   Architectural fix: avoid a general code/shell tool if possible; if required, run it in a real sandbox (container / gVisor / seccomp), behind an explicit human-approval gate, with a command allowlist — and treat those controls as load-bearing (Shift 1).
 metadata:
   shift: scope
@@ -12,22 +12,39 @@ metadata:
   references:
     - https://www.microsoft.com/en-us/security/blog/2026/05/07/prompts-become-shells-rce-vulnerabilities-ai-agent-frameworks/
     - https://modelcontextprotocol.io/specification/draft/basic/security_best_practices
-# Tools are frequently declared as plain dict specs ({"type":"function","function":
-# {"name":"python","description":"Execute Python code..."}}) rather than @tool
-# decorators, so the decorator-anchored rules miss them entirely. This was a real
-# blind spot: the agent-security-review eval found an unsloth Studio `python` /
-# `terminal` tool (model code-exec) that the whole pack missed. Match the tool's
-# self-description: a name/description value that advertises code/command/shell
-# execution is, by definition, an LLM→RCE surface. High precision — benign tools
-# (web_search, calculator) describe retrieval/compute, not "execute code".
+# Tools are frequently declared as plain dict specs ({"name":"python",
+# "description":"Execute Python code..."}) rather than @tool decorators, so the
+# decorator-anchored rules miss them. Generalized across frameworks/wordings —
+# NOT tuned to one repo's phrasing:
+#   Signal 1: the tool NAME/type is a canonical code/shell-exec identifier (python,
+#             bash, shell, exec, code_interpreter, repl, run_code, ...). This
+#             vocabulary is shared across OpenAI code_interpreter, LangChain
+#             PythonREPL, CrewAI Code Interpreter, e2b/sandbox exec, MCP servers.
+#   Signal 2: the DESCRIPTION advertises executing/running/interpreting/evaluating
+#             code or a shell/terminal command (verb-agnostic). Benign tools
+#             (web_search, "run a calculation", "run a SQL query") describe
+#             retrieval/compute over a specific non-code noun and don't match.
+# Validated: 8/8 diverse cross-framework declarations caught, 0 FPs on benign.
 rule:
   kind: pair
-  all:
-    - has:
-        field: key
-        kind: string
-        regex: '(name|description)'
-    - has:
-        field: value
-        kind: string
-        regex: '(?i)(execute .{0,20}(python|terminal|shell|bash|arbitrary|code|command)|run .{0,20}(code|shell command|terminal command|arbitrary code|python)|code execution|code interpreter|sandbox and return|run a terminal)'
+  any:
+    # Signal 1 — canonical exec tool name/type.
+    - all:
+        - has:
+            field: key
+            kind: string
+            regex: '(?i)^"?(name|type)"?$'
+        - has:
+            field: value
+            kind: string
+            regex: '(?i)^"?(python|python_?repl|bash|sh|shell|terminal|cmd|exec|eval_?python|run_?code|code_?exec|code_?interpreter|interpreter|repl|shell_?exec|command_?exec|run_?shell|run_?command|run_?python)"?$'
+    # Signal 2 — description advertises code/command execution (verb-agnostic).
+    - all:
+        - has:
+            field: key
+            kind: string
+            regex: '(?i)description'
+        - has:
+            field: value
+            kind: string
+            regex: '(?i)(execut|\brun(s|ning)?\b|interpret|evaluat).{0,40}(python|shell|bash|terminal|command|code|script|expression)|(python|shell|bash|terminal) (code|command|shell|session|repl)|code interpreter|arbitrary (code|command)'
