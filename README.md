@@ -6,14 +6,14 @@
 
 <p align="center">
   <a href="https://ast-grep.github.io/">ast-grep</a> rules that catch insecure patterns in AI-agent code — before they ship.<br>
-  <strong><!-- rules:count -->45 rules · 8 components<!-- /rules:count --> · Python &amp; TypeScript · vendor-neutral</strong>
+  <strong><!-- rules:count -->46 rules · 8 components<!-- /rules:count --> · Python &amp; TypeScript · vendor-neutral</strong>
 </p>
 
 <p align="center">
   <a href="https://github.com/raxITlabs/agent-security-review/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/raxITlabs/agent-security-review/ci.yml?branch=main&style=flat-square&labelColor=000&label=CI" alt="CI"></a>
   <img src="https://img.shields.io/badge/Claude_Code-plugin-000?style=flat-square&logo=claude&logoColor=white" alt="Claude Code plugin">
   <a href="https://ast-grep.github.io/"><img src="https://img.shields.io/badge/powered_by-ast--grep-000?style=flat-square" alt="powered by ast-grep"></a>
-  <!-- rules:badge --><a href="docs/RULES.md"><img src="https://img.shields.io/badge/rules-45-000?style=flat-square&labelColor=000" alt="45 rules"></a><!-- /rules:badge -->
+  <!-- rules:badge --><a href="docs/RULES.md"><img src="https://img.shields.io/badge/rules-46-000?style=flat-square&labelColor=000" alt="46 rules"></a><!-- /rules:badge -->
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-000?style=flat-square" alt="MIT license"></a>
 </p>
 

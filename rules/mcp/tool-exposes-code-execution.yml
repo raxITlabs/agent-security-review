@@ -1,0 +1,33 @@
+id: scope.tool-exposes-code-execution
+language: python
+severity: error
+message: |-
+  An LLM tool is declared whose name/description advertises code or shell execution (a "python" / "terminal" / "run code" tool). The model can run arbitrary code or commands — the most direct LLM-output-to-RCE surface an agent can expose.
+  Architectural fix: avoid a general code/shell tool if possible; if required, run it in a real sandbox (container / gVisor / seccomp), behind an explicit human-approval gate, with a command allowlist — and treat those controls as load-bearing (Shift 1).
+metadata:
+  shift: scope
+  component: mcp
+  confidence: high
+  framework: msrc-prompts-become-shells
+  references:
+    - https://www.microsoft.com/en-us/security/blog/2026/05/07/prompts-become-shells-rce-vulnerabilities-ai-agent-frameworks/
+    - https://modelcontextprotocol.io/specification/draft/basic/security_best_practices
+# Tools are frequently declared as plain dict specs ({"type":"function","function":
+# {"name":"python","description":"Execute Python code..."}}) rather than @tool
+# decorators, so the decorator-anchored rules miss them entirely. This was a real
+# blind spot: the agent-security-review eval found an unsloth Studio `python` /
+# `terminal` tool (model code-exec) that the whole pack missed. Match the tool's
+# self-description: a name/description value that advertises code/command/shell
+# execution is, by definition, an LLM→RCE surface. High precision — benign tools
+# (web_search, calculator) describe retrieval/compute, not "execute code".
+rule:
+  kind: pair
+  all:
+    - has:
+        field: key
+        kind: string
+        regex: '(name|description)'
+    - has:
+        field: value
+        kind: string
+        regex: '(?i)(execute .{0,20}(python|terminal|shell|bash|arbitrary|code|command)|run .{0,20}(code|shell command|terminal command|arbitrary code|python)|code execution|code interpreter|sandbox and return|run a terminal)'

@@ -1,6 +1,6 @@
 # Rule catalog
 
-<!-- rules:count -->45 rules · 8 components<!-- /rules:count --> in the pack, grouped by component. Severity is `error` (block), `warning` (review), or `info`. The `scope` / `sign` / `stop` prefix on each rule ID is its architectural shift — see [Frameworks](FRAMEWORKS.md).
+<!-- rules:count -->46 rules · 8 components<!-- /rules:count --> in the pack, grouped by component. Severity is `error` (block), `warning` (review), or `info`. The `scope` / `sign` / `stop` prefix on each rule ID is its architectural shift — see [Frameworks](FRAMEWORKS.md).
 
 > **Counts are generated.** The numbers above are stamped by `scripts/count-rules.py` straight from the rule files, and CI fails if they drift. Don't hand-edit them.
 
@@ -49,6 +49,7 @@ Rules ending in `-ts` are TypeScript variants of a Python rule; `openai-agents-*
 
 | Rule | Lang | Severity | Flags |
 |---|---|---|---|
+| `scope.tool-exposes-code-execution` | py | error | LLM tool whose name/description advertises code/shell execution (a `python`/`terminal` tool) — direct LLM-output-to-RCE surface |
 | `scope.mcp-server-without-input-validation` | py | error | MCP tool params reach dangerous sinks unvalidated — tool poisoning / RCE |
 | `sign.mcp-client-without-server-allowlist` | py | warning | MCP client connects to a variable server URL with no allowlist — trusts arbitrary servers |
 | `sign.mcp-tool-without-allowlist` | py | warning | MCP tool lacks URL/path allowlist — SSRF / path traversal |
