@@ -7,6 +7,6 @@
   },
   "homepage": "https://github.com/raxITlabs/agent-security-review",
   "repository": "https://github.com/raxITlabs/agent-security-review",
-  "license": "Proprietary",
+  "license": "MIT",
   "keywords": ["security", "ast-grep", "ai-agents", "mcp", "sast", "prompt-injection"]
 }
