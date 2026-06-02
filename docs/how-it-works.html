@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>agent-security-review — how it works</title>
+<style>
+  :root{
+    --bg:#0b0d10; --panel:#14171c; --panel2:#1b1f26; --ink:#e7ebf0; --mut:#9aa4b2;
+    --line:#272d36; --acc:#6ea8fe; --scope:#7cc6a6; --sign:#e3b341; --stop:#f0786f;
+    --code:#0f1216; --ok:#7cc6a6; --warn:#e3b341; --err:#f0786f;
+    --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 var(--sans);
+       -webkit-font-smoothing:antialiased}
+  .wrap{max-width:920px;margin:0 auto;padding:48px 24px 96px}
+  header.hero{border:1px solid var(--line);border-radius:16px;padding:36px 32px;
+       background:linear-gradient(160deg,#14171c,#0f1216);margin-bottom:40px}
+  h1{font-size:34px;margin:0 0 6px;letter-spacing:-.02em}
+  .sub{color:var(--mut);font-size:17px;margin:0}
+  .pill{display:inline-block;font:600 12px var(--mono);padding:3px 9px;border-radius:999px;
+        border:1px solid var(--line);color:var(--mut);margin-top:16px}
+  h2{font-size:23px;margin:48px 0 14px;letter-spacing:-.01em}
+  h3{font-size:17px;margin:28px 0 8px;color:var(--ink)}
+  p{color:#cdd5df}
+  a{color:var(--acc);text-decoration:none} a:hover{text-decoration:underline}
+  .lead{font-size:18px;color:#cdd5df}
+  code{font-family:var(--mono);background:#1b1f26;border:1px solid var(--line);
+       padding:1px 6px;border-radius:6px;font-size:13.5px}
+  pre{background:var(--code);border:1px solid var(--line);border-radius:12px;
+      padding:16px 18px;overflow:auto;font-family:var(--mono);font-size:13px;line-height:1.55;color:#d7deea}
+  pre .c{color:#6b7686} pre .k{color:#e3b341} pre .s{color:#7cc6a6} pre .r{color:#f0786f}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 24px;margin:18px 0}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin:16px 0}
+  @media(max-width:680px){.grid3{grid-template-columns:1fr}}
+  .shift{border:1px solid var(--line);border-radius:12px;padding:16px;background:var(--panel2)}
+  .shift h4{margin:0 0 6px;font:700 14px var(--mono);letter-spacing:.04em}
+  .shift.scope h4{color:var(--scope)} .shift.sign h4{color:var(--sign)} .shift.stop h4{color:var(--stop)}
+  .shift p{font-size:13.5px;color:var(--mut);margin:0}
+  .steps{counter-reset:s;list-style:none;padding:0;margin:18px 0}
+  .steps li{position:relative;padding:14px 16px 14px 56px;border:1px solid var(--line);
+            border-radius:12px;margin-bottom:10px;background:var(--panel)}
+  .steps li::before{counter-increment:s;content:counter(s);position:absolute;left:14px;top:14px;
+       width:28px;height:28px;border-radius:50%;background:var(--acc);color:#06101f;
+       font:700 14px var(--mono);display:flex;align-items:center;justify-content:center}
+  .steps b{color:var(--ink)}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14px}
+  th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--mut);font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:.04em}
+  .sev-err{color:var(--err);font-weight:600} .sev-warn{color:var(--warn);font-weight:600}
+  .tag{font:600 11px var(--mono);padding:2px 7px;border-radius:6px;border:1px solid var(--line)}
+  .tag.scope{color:var(--scope)} .tag.sign{color:var(--sign)} .tag.stop{color:var(--stop)}
+  .finding{border:1px solid var(--line);border-left:4px solid var(--err);border-radius:12px;
+           padding:18px 20px;margin:16px 0;background:var(--panel)}
+  .finding.warn{border-left-color:var(--warn)}
+  .finding .head{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+  .finding .rid{font:600 13px var(--mono);color:var(--ink)}
+  .kv{display:grid;grid-template-columns:90px 1fr;gap:4px 12px;font-size:14px;margin-top:8px}
+  .kv .key{color:var(--mut);font:600 12px var(--mono)}
+  .fix{background:#10231a;border:1px solid #1f4434;border-radius:8px;padding:10px 13px;
+       margin-top:12px;font-size:14px;color:#bfe6d2}
+  .fix b{color:var(--ok)}
+  .patchbad{background:#241112;border:1px solid #46221f;border-radius:8px;padding:10px 13px;
+       margin-top:8px;font-size:13.5px;color:#e9b8b4}
+  .note{border-left:3px solid var(--acc);background:#0f1722;padding:12px 16px;border-radius:8px;
+        color:#c4d3e6;font-size:14.5px;margin:16px 0}
+  .muted{color:var(--mut);font-size:13.5px}
+  footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--line);color:var(--mut);font-size:13px}
+  .flow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:18px 0;font:600 12.5px var(--mono)}
+  .flow .box{border:1px solid var(--line);border-radius:9px;padding:9px 12px;background:var(--panel2);color:#cdd5df}
+  .flow .arr{color:var(--mut)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <h1>agent-security-review</h1>
+  <p class="sub">How an ast-grep rule pack turns AI-agent code into <strong>architectural</strong> security guidance — not just a list of bugs.</p>
+  <span class="pill">46 rules · 8 components · Python &amp; TypeScript · worked example: a vulnerable LLM agent</span>
+</header>
+
+<p class="lead">This pack scans agent / LLM / MCP code and, for every issue it finds, tells you the
+<em>design change</em> that removes the whole class of problem — not a one-line patch. This page
+explains the machine, the thesis behind it, and walks a real scan of a deliberately-vulnerable
+agent end to end.</p>
+
+<h2>1. The core idea (the thesis)</h2>
+<p>Most scanners answer “where is the bug?”. This pack answers a harder, more useful question:
+<strong>“what about the architecture let this bug exist, and what shift removes it?”</strong>
+Every rule is tagged with one of three architectural shifts — <b>Scope</b>, <b>Sign</b>, <b>Stop</b> —
+and every finding carries an <code>Architectural fix:</code> that names a design move.</p>
+
+<div class="grid3">
+  <div class="shift scope"><h4>SCOPE</h4><p>Shrink what the agent <em>can</em> do. Bound loops, split God-Agents, cap tool breadth, attribute retrieved data, avoid lethal capability combos.</p></div>
+  <div class="shift sign"><h4>SIGN</h4><p>Establish <em>who</em> is acting. Per-task identity, no ambient credentials, signed agent-to-agent calls, authenticated gateways, secrets from a vault.</p></div>
+  <div class="shift stop"><h4>STOP</h4><p>Gate what <em>happens</em>. A reference monitor before tool dispatch, no LLM output into sinks or control flow, moderation, no secrets in logs.</p></div>
+</div>
+
+<p class="muted">Scope / Sign / Stop is the spine: it maps to the lethal-trifecta &amp; Meta Rule-of-Two
+work, DeepMind’s CaMeL (don’t let untrusted data steer the program), and AWS/Cedar reference-monitor
+patterns. The full mapping is in <code>docs/FRAMEWORKS.md</code>.</p>
+
+<h2>2. How a scan actually runs</h2>
+<p>The engine is <a href="https://ast-grep.github.io/">ast-grep</a> — it matches the code’s syntax tree
+(not regex over text), so it sees real structure: a decorated function, a tool dict, a call with or
+without a given keyword argument.</p>
+
+<div class="flow">
+  <span class="box">your repo</span><span class="arr">→</span>
+  <span class="box">fetch rules (live from GitHub <code>main</code>)</span><span class="arr">→</span>
+  <span class="box">ast-grep scan</span><span class="arr">→</span>
+  <span class="box">JSON findings</span><span class="arr">→</span>
+  <span class="box">report.py</span><span class="arr">→</span>
+  <span class="box">triaged report</span>
+</div>
+
+<ol class="steps">
+  <li><b>Resolve &amp; fetch rules.</b> <code>scan.sh</code> pulls the latest rules from the repo (with an offline fallback), so every scan uses current checks without re-installing.</li>
+  <li><b>Scope the scan.</b> Test / eval / example / fixture dirs are excluded by default — a fake key in a test isn’t shipped attack surface. (<code>--include-tests</code> overrides.)</li>
+  <li><b>Match structure.</b> ast-grep applies all 46 rules across the tree and emits JSON: rule id, severity, file:line, the matched code, and metadata (shift + confidence).</li>
+  <li><b>Cover the prompt surface.</b> ast-grep has no Markdown parser, so a companion <code>scan-markdown.sh</code> grep-pass catches injected instructions planted in <code>.cursorrules</code> / <code>SKILL.md</code> / <code>CLAUDE.md</code>.</li>
+  <li><b>Triage.</b> <code>report.py</code> groups by severity, shows each rule’s architectural fix, and prints a confidence summary so heuristic findings read as “triage first”, not “block the build”.</li>
+</ol>
+
+<div class="note"><strong>Deterministic floor, human ceiling.</strong> The scan is the reproducible floor.
+The skill that wraps it also has the model read the code for what fixed patterns can’t see, and —
+critically — <em>classify whether the repo is even an agent</em>. On a non-agent repo it scopes out
+instead of inventing findings.</div>
+
+<h2>3. Worked example — scanning a vulnerable LLM agent</h2>
+<p>Our example is <a href="https://github.com/ReversecLabs/damn-vulnerable-llm-agent"><code>damn-vulnerable-llm-agent</code></a>
+(dvla) — a LangChain banking agent built intentionally insecure. Running the pack:</p>
+
+<pre><span class="c"># from the pack repo</span>
+ast-grep scan --config sgconfig.yml --include-metadata --json ./dvla
+<span class="c"># → 4 findings: 2 error, 2 warning</span></pre>
+
+<p>Here is the <strong>actual output</strong>, finding by finding.</p>
+
+<div class="finding">
+  <div class="head">
+    <span class="rid">stop.llm-output-to-dangerous-sink</span>
+    <span class="sev-err">● error</span>
+    <span class="tag stop">STOP</span>
+    <span class="muted">confidence: high</span>
+  </div>
+  <div class="kv">
+    <span class="key">where</span><span><code>transaction_db.py:62</code> &amp; <code>:76</code></span>
+    <span class="key">code</span><span><code>cursor.execute(f"SELECT * FROM Transactions WHERE userId = '{str(userId)}'")</code></span>
+    <span class="key">why</span><span>An agent tool runs an f-string SQL query built from a value the LLM controls. A prompt-injected model can rewrite the query → data exfiltration / tampering. This is the LLM-output-to-sink class.</span>
+  </div>
+  <div class="fix"><b>Architectural fix (Stop):</b> never pass model/tool output into a code or shell sink; use parameterized queries and put a reference monitor at the tool boundary.</div>
+  <div class="patchbad">A point-fix scanner would say “escape this string.” The architectural fix says <em>the agent should never be able to reach a raw SQL sink at all</em> — that kills every future instance, not this one line.</div>
+</div>
+
+<div class="finding warn">
+  <div class="head">
+    <span class="rid">scope.god-agent-tool-count</span>
+    <span class="sev-warn">● warning</span>
+    <span class="tag scope">SCOPE</span>
+    <span class="muted">confidence: medium</span>
+  </div>
+  <div class="kv">
+    <span class="key">where</span><span><code>tools.py:22</code> &amp; <code>:40</code></span>
+    <span class="key">code</span><span><code>get_current_user_tool = Tool(name='GetCurrentUser', …)</code></span>
+    <span class="key">why</span><span>Many powerful tools registered to one agent — the “God-Agent” pattern. The more an agent can do from one context, the larger the blast radius when it’s hijacked.</span>
+  </div>
+  <div class="fix"><b>Architectural fix (Scope):</b> split into polyphonic specialized agents, each with a narrow tool list — so a compromise of one can’t reach everything.</div>
+</div>
+
+<h2>4. Reading the report</h2>
+<p><code>report.py</code> turns those raw matches into a prioritized, honest summary:</p>
+<pre>## Security scan: 4 finding(s) — 2 error · 2 warning
+
+<span class="s">_Confidence: 2 high · 2 medium. Low-confidence findings are heuristic — triage first._</span>
+
+### ERROR (2)
+- <span class="r">stop.llm-output-to-dangerous-sink</span>  `control-flow/stop`
+  - transaction_db.py:62  — LLM-driven SQL sink
+  - Fix: parameterized queries + reference monitor at the tool boundary
+
+### WARNING (2)
+- <span class="k">scope.god-agent-tool-count</span>  `agent/scope`
+  - tools.py:22 — God-Agent tool sprawl
+  - Fix: split into specialized agents with narrow tool lists</pre>
+
+<h2>5. Why precision matters to the thesis</h2>
+<p>Architectural guidance is high-stakes: telling someone to re-architect a false positive trains them
+to ignore you. So the pack is built to keep the advice trustworthy:</p>
+<table>
+  <tr><th>Guardrail</th><th>What it prevents</th></tr>
+  <tr><td><b>Applicability gate</b></td><td>On a non-agent repo (a training library, a CLI) the scan scopes out — it won’t manufacture “missing gateway auth” for code that has no gateway.</td></tr>
+  <tr><td><b>Confidence tiers</b></td><td>Heuristic rules carry <code>confidence: low/medium</code> so a “maybe” never reads like a “must.”</td></tr>
+  <tr><td><b>Generalized, not repo-shaped</b></td><td>Rules key on portable signals (canonical names, call shapes, sink kinds) — validated across LangChain, LangGraph, OpenAI Agents, CrewAI, Bedrock, MCP — not one repo’s literals.</td></tr>
+  <tr><td><b>Router-aware auth</b></td><td>Real example: the gateway rule learned to recognize router-level auth (<code>APIRouter(dependencies=…)</code>) after a scale test on a large agent platform showed ~40% of its hits were centrally-authenticated routes.</td></tr>
+</table>
+
+<h2>6. Try it</h2>
+<pre>brew install ast-grep                                  <span class="c"># engine</span>
+npx skills add raxITlabs/agent-security-review         <span class="c"># install the skill</span>
+<span class="c"># then in Claude Code, just ask:</span>
+<span class="c">#   "security-review my agent"</span></pre>
+<p class="muted">Or run the rules directly:
+<code>ast-grep scan --config sgconfig.yml --json /path/to/agent</code>. Full rule catalog in
+<code>docs/RULES.md</code>; the Scope/Sign/Stop &amp; framework mapping in <code>docs/FRAMEWORKS.md</code>.</p>
+
+<footer>
+  Generated from a real scan of <code>damn-vulnerable-llm-agent</code> with the agent-security-review
+  pack (ast-grep 0.42.2). Findings shown are actual rule output, not illustrative.
+  46 rules · 8 components (agent, identity, control-flow, mcp, memory, skills, gateway, config).
+</footer>
+
+</div>
+</body>
+</html>
