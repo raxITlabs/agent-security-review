@@ -38,3 +38,24 @@ rule:
             - pattern: jwt_required($$$)
             - pattern: HTTPBearer($$$)
             - pattern: get_current_user
+    # Router-level / global auth: many apps attach auth once on the router
+    # (APIRouter(dependencies=...)) or app (FastAPI(dependencies=...)) instead of
+    # repeating Depends() on every route. Exempt routes whose module declares such
+    # a router — otherwise every centrally-authenticated endpoint false-fires
+    # (found at scale on OpenHands: ~40% of hits were this pattern).
+    # Known limitation: this exemption is file-scoped — if one module mixes an
+    # authed router (dependencies=...) AND a second open router, routes on the open
+    # router are also exempted (ast-grep can't bind a decorator to its specific
+    # router var when several coexist). One-router-per-file (the common case) is
+    # handled correctly; mixed-router files are a documented under-report.
+    - not:
+        inside:
+          stopBy: end
+          kind: module
+          has:
+            stopBy: end
+            any:
+              - pattern: APIRouter($$$, dependencies=$$$)
+              - pattern: APIRouter(dependencies=$$$)
+              - pattern: FastAPI($$$, dependencies=$$$)
+              - pattern: FastAPI(dependencies=$$$)
