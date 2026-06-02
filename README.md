@@ -70,7 +70,7 @@ All routes pull the latest rules from this repo at scan time (with an offline fa
 
 ## Docs
 
-- **[How it works](docs/how-it-works.html)** — the Scope/Sign/Stop thesis and a full worked scan of a vulnerable agent (open in a browser)
+- **[How it works](docs/how-it-works.md)** — the Scope/Sign/Stop thesis and a full worked scan of a vulnerable agent
 - **[Rule catalog](docs/RULES.md)** — every rule, its severity, and what it flags
 - **[Frameworks](docs/FRAMEWORKS.md)** — Scope / Sign / Stop, MAESTRO 7-layer, and source references
 - **[Contributing](docs/CONTRIBUTING.md)** — repo layout, rule schema, how to add a rule
