@@ -1,0 +1,27 @@
+id: scope.dspy-react-without-max-iters
+language: python
+severity: warning
+message: |-
+  DSPy `ReAct` is constructed without `max_iters`, so it relies on the default
+  of 20 tool-calling round-trips per invocation. That is a large implicit budget
+  for a tool loop and an easy denial-of-wallet path if a tool keeps returning
+  errors. Architectural fix: set `max_iters` to a budget aligned with the task
+  rather than inheriting the default (Shift 1, Scope).
+metadata:
+  shift: scope
+  component: agent
+  confidence: medium
+  framework: dspy-resource-bounds
+  references:
+    - https://dspy.ai/api/modules/ReAct/
+    - https://cloudsecurityalliance.org/blog/2025/02/06/agentic-ai-threat-modeling-framework-maestro
+rule:
+  all:
+    - any:
+        - pattern: dspy.ReAct($$$)
+        - pattern: ReAct($$$)
+    - not:
+        has:
+          stopBy: end
+          kind: keyword_argument
+          has: { field: name, regex: '^max_iters$' }

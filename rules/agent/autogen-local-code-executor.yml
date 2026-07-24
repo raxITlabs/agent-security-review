@@ -1,0 +1,21 @@
+id: scope.autogen-local-code-executor
+language: python
+severity: error
+message: |-
+  AutoGen / AG2 `LocalCommandLineCodeExecutor` runs model-generated code on the
+  host machine (AutoGen's own docs say this is "not recommended due to the
+  security risk of running LLM-generated code in your local environment"). It is
+  the code-path counterpart to a `use_docker: False` config — injected model
+  output reaches host command execution. Architectural fix: use
+  `DockerCommandLineCodeExecutor` (or another sandboxed executor) so generated
+  code runs in an isolated container (Shift 1, Scope).
+metadata:
+  shift: scope
+  component: agent
+  confidence: high
+  framework: autogen-code-execution
+  references:
+    - https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/components/command-line-code-executors.html
+    - https://www.microsoft.com/en-us/security/blog/2026/05/07/prompts-become-shells-rce-vulnerabilities-ai-agent-frameworks/
+rule:
+  pattern: LocalCommandLineCodeExecutor($$$)

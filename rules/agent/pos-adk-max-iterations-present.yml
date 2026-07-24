@@ -1,0 +1,21 @@
+id: scope.pos.adk-max-iterations-present
+language: python
+severity: info
+message: |-
+  Positive evidence: a Google ADK `LoopAgent` sets an explicit `max_iterations`,
+  bounding the refinement loop. This is the recommended resource-bound /
+  denial-of-wallet control for an ADK loop (Shift 1, Scope).
+metadata:
+  shift: scope
+  component: agent
+  confidence: high
+  framework: google-adk-resource-bounds
+  references:
+    - https://google.github.io/adk-docs/agents/workflow-agents/loop-agents/
+rule:
+  all:
+    - pattern: LoopAgent($$$)
+    - has:
+        stopBy: end
+        kind: keyword_argument
+        has: { field: name, regex: '^max_iterations$' }

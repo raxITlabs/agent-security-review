@@ -1,0 +1,28 @@
+id: scope.dspy-code-execution
+language: python
+severity: error
+message: |-
+  DSPy code-execution primitive in use — ProgramOfThought generates and runs
+  Python to solve a task, and PythonInterpreter executes model-authored code.
+  Either one lets LLM output reach a code interpreter, the most direct
+  prompt-injection-to-code-execution surface a DSPy program can expose. (DSPy's
+  PythonInterpreter runs on Deno by default, but the Deno permission set must be
+  treated as load-bearing — it is not a substitute for network/filesystem
+  isolation.) Architectural fix: run the interpreter in an isolated sandbox
+  (container / gVisor / locked-down Deno permissions), constrain what it can
+  import and reach, and gate it behind human approval for anything with side
+  effects (Shift 1, Scope).
+metadata:
+  shift: scope
+  component: agent
+  confidence: medium
+  framework: dspy-code-execution
+  references:
+    - https://dspy.ai/api/modules/ProgramOfThought/
+    - https://www.microsoft.com/en-us/security/blog/2026/05/07/prompts-become-shells-rce-vulnerabilities-ai-agent-frameworks/
+rule:
+  any:
+    - pattern: dspy.ProgramOfThought($$$)
+    - pattern: dspy.PythonInterpreter($$$)
+    - pattern: ProgramOfThought($$$)
+    - pattern: PythonInterpreter($$$)
