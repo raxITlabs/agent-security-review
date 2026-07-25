@@ -1,0 +1,26 @@
+id: scope.google-adk-loop-without-max-iterations
+language: python
+severity: warning
+message: |-
+  Google ADK `LoopAgent` is constructed without `max_iterations`. Per the ADK
+  docs, an absent `max_iterations` means the loop runs until a sub-agent
+  escalates — potentially indefinitely — which is an unbounded loop /
+  denial-of-wallet risk. Architectural fix: set `max_iterations` to a budget
+  aligned with the task, and make escalation/exit conditions explicit
+  (Shift 1, Scope).
+metadata:
+  shift: scope
+  component: agent
+  confidence: high
+  framework: google-adk-resource-bounds
+  references:
+    - https://google.github.io/adk-docs/agents/workflow-agents/loop-agents/
+    - https://cloudsecurityalliance.org/blog/2025/02/06/agentic-ai-threat-modeling-framework-maestro
+rule:
+  all:
+    - pattern: LoopAgent($$$)
+    - not:
+        has:
+          stopBy: end
+          kind: keyword_argument
+          has: { field: name, regex: '^max_iterations$' }

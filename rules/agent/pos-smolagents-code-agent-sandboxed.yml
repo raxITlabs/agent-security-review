@@ -1,0 +1,24 @@
+id: scope.pos.smolagents-code-agent-sandboxed
+language: python
+severity: info
+message: |-
+  Positive evidence: smolagents CodeAgent runs generated code in a sandboxed
+  executor (executor_type="e2b" / "docker" / "modal" / "blaxel") rather than the
+  default local executor. This is the recommended control for the CodeAgent
+  code-execution surface (Shift 1, Scope).
+metadata:
+  shift: scope
+  component: agent
+  confidence: high
+  framework: smolagents-secure-code-execution
+  references:
+    - https://huggingface.co/docs/smolagents/tutorials/secure_code_execution
+rule:
+  all:
+    - pattern: CodeAgent($$$)
+    - has:
+        stopBy: end
+        kind: keyword_argument
+        all:
+          - has: { field: name, regex: '^executor_type$' }
+          - has: { field: value, regex: 'e2b|docker|modal|blaxel' }

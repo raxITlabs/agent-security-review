@@ -1,0 +1,26 @@
+id: scope.pos.pydantic-ai-usage-limits-present
+language: python
+severity: info
+message: |-
+  Positive evidence: a Pydantic AI agent run passes usage_limits=UsageLimits(...),
+  bounding the model-turn / tool-call / token budget for the run. This is the
+  recommended denial-of-wallet control for an agent loop (Shift 1, Scope).
+metadata:
+  shift: scope
+  component: agent
+  confidence: high
+  framework: pydantic-ai-usage-limits
+  references:
+    - https://ai.pydantic.dev/agent/#usage-limits
+rule:
+  all:
+    - any:
+        - pattern: $A.run($$$)
+        - pattern: $A.run_sync($$$)
+        - pattern: $A.run_stream($$$)
+    - has:
+        stopBy: end
+        kind: keyword_argument
+        has:
+          field: name
+          regex: '^usage_limits$'

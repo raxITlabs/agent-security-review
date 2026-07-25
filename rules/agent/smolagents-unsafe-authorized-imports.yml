@@ -1,0 +1,30 @@
+id: scope.smolagents-unsafe-authorized-imports
+language: python
+severity: warning
+message: |-
+  smolagents CodeAgent grants an over-broad additional_authorized_imports —
+  either a "*" wildcard (authorize any import) or a host-reaching module
+  (os / subprocess / sys / importlib / builtins / ctypes / socket / shutil / pty).
+  Inside a CodeAgent these imports let model-generated code shell out, touch the
+  filesystem, or open the network — defeating the sandbox even when executor_type
+  is set. Architectural fix: authorize only the specific compute libraries the
+  task needs; never grant "*" or host/OS modules (Shift 1, Scope).
+metadata:
+  shift: scope
+  component: agent
+  confidence: high
+  framework: smolagents-secure-code-execution
+  references:
+    - https://huggingface.co/docs/smolagents/tutorials/secure_code_execution
+    - https://cloudsecurityalliance.org/blog/2025/02/06/agentic-ai-threat-modeling-framework-maestro
+rule:
+  all:
+    - pattern: CodeAgent($$$)
+    - has:
+        stopBy: end
+        kind: keyword_argument
+        all:
+          - has: { field: name, regex: '^additional_authorized_imports$' }
+          - has:
+              field: value
+              regex: '["''](\*|os|subprocess|sys|importlib|builtins|ctypes|socket|shutil|pty)["'']'

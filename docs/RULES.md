@@ -1,21 +1,34 @@
 # Rule catalog
 
-<!-- rules:count -->46 rules · 8 components<!-- /rules:count --> in the pack, grouped by component. Severity is `error` (block), `warning` (review), or `info`. The `scope` / `sign` / `stop` prefix on each rule ID is its architectural shift — see [Frameworks](FRAMEWORKS.md).
+<!-- rules:count -->57 rules · 8 components<!-- /rules:count --> in the pack, grouped by component. Severity is `error` (block), `warning` (review), or `info`. The `scope` / `sign` / `stop` prefix on each rule ID is its architectural shift — see [Frameworks](FRAMEWORKS.md).
 
 > **Counts are generated.** The numbers above are stamped by `scripts/count-rules.py` straight from the rule files, and CI fails if they drift. Don't hand-edit them.
 
 Rules ending in `-ts` are TypeScript variants of a Python rule; `openai-agents-*` rules target the OpenAI Agents SDK.
 
+Most rules are **detectors** — they flag a missing or broken control. A few are **positive-evidence** rules, marked with `pos` after the shift prefix in the id (`scope.pos.*`, severity `info`, mirroring the `artifact.pos.*` convention): they fire when a recommended control *is* present (e.g. a sandboxed executor, an explicit token budget), so a downstream consumer can mint deterministic "Verified" signal rather than inferring safety from a detector not firing. See [Contributing](CONTRIBUTING.md#positive-evidence-rules-scopepos--signpos) — this is a proposed convention introduced with the framework-coverage rules.
+
 ## Agent architecture — `rules/agent/`
 
 | Rule | Lang | Severity | Flags |
 |---|---|---|---|
-| `scope.agent-without-bounded-loop` | py | warning | Agent loop with no `max_iterations` / `max_turns` bound — unbounded loop / denial-of-wallet |
-| `scope.agent-without-bounded-loop-ts` | ts | warning | Agentic LLM call with no `maxSteps` / `maxToolRoundtrips` cap — unbounded tool loops |
+| `scope.agent-without-bounded-loop` | py | warning | Agent loop with no `max_iterations` / `max_turns` bound — unbounded loop / denial-of-wallet (LangChain, LangGraph, CrewAI, LlamaIndex, OpenAI Agents) |
+| `scope.agent-without-bounded-loop-ts` | ts | warning | Agentic LLM call with no `maxSteps` / `maxToolRoundtrips` cap — unbounded tool loops (Vercel AI SDK) |
 | `scope.openai-agents-runner-without-max-turns` | py | warning | `Runner.run()` with no `max_turns` cap — unbounded agentic loop |
 | `scope.llm-call-without-timeout` | py | warning | LLM API call with no timeout — denial-of-wallet from runaway requests |
 | `scope.llm-call-without-timeout-ts` | ts | warning | LLM call with no `abortSignal` / timeout — denial-of-wallet from runaway requests |
 | `scope.openai-agents-runner-without-timeout` | py | warning | `Runner.run()` with no timeout — denial-of-wallet if the model stalls |
+| `scope.pydantic-ai-run-without-usage-limits` | py | warning | Pydantic AI `run_sync` / `run_stream` with no `usage_limits` — unbounded model-turn / token budget |
+| `scope.dspy-react-without-max-iters` | py | warning | DSPy `ReAct` with no `max_iters` — relies on the default of 20 tool round-trips |
+| `scope.google-adk-loop-without-max-iterations` | py | warning | Google ADK `LoopAgent` with no `max_iterations` — runs until escalation / indefinitely |
+| `scope.smolagents-code-agent-unsandboxed` | py | error | smolagents `CodeAgent` on the default local executor — runs LLM-generated Python on the host (RCE) |
+| `scope.smolagents-unsafe-authorized-imports` | py | warning | `CodeAgent` `additional_authorized_imports` grants `*` or a host module (`os` / `subprocess` / …) |
+| `scope.dspy-code-execution` | py | error | DSPy `ProgramOfThought` / `PythonInterpreter` — LLM output reaches a code interpreter |
+| `scope.google-adk-unsafe-code-executor` | py | error | Google ADK `UnsafeLocalCodeExecutor` — runs model-generated code in-process (RCE) |
+| `scope.autogen-local-code-executor` | py | error | AutoGen / AG2 `LocalCommandLineCodeExecutor` — runs model-generated code on the host (RCE) |
+| `scope.pos.smolagents-code-agent-sandboxed` | py | info | **Positive:** `CodeAgent` runs code in an `e2b` / `docker` / `modal` / `blaxel` sandbox |
+| `scope.pos.pydantic-ai-usage-limits-present` | py | info | **Positive:** Pydantic AI run passes `usage_limits=UsageLimits(...)` — budget bounded |
+| `scope.pos.adk-max-iterations-present` | py | info | **Positive:** Google ADK `LoopAgent` sets an explicit `max_iterations` |
 | `scope.god-agent-tool-count` | py | warning | Many tool registrations in one place — God Agent pattern |
 | `scope.rule-of-two-violation` | py | error | Meta Rule of Two violated — one module has all three risky properties |
 

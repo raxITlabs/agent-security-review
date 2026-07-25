@@ -53,6 +53,18 @@ rule:
 
 See [Frameworks](FRAMEWORKS.md) for what `shift` and `maestro_layer` mean.
 
+### Positive-evidence rules (`scope.pos.*` / `sign.pos.*`)
+
+Most rules are **detectors** — they fire on a missing or broken control. A few
+are **positive-evidence** rules that fire when a recommended control *is* present
+(a sandboxed executor, an explicit token/loop budget), so a downstream consumer
+can mint deterministic "Verified" from presence rather than inferring safety from
+a detector *not* firing. Mark these by putting `pos` after the shift prefix in the
+id — `scope.pos.smolagents-code-agent-sandboxed` — mirroring the `artifact.pos.*`
+convention the artifact linter already emits, and set `severity: info`. (This is a
+proposed convention introduced with the framework-coverage rules; the shift prefix
+is unchanged, so `count-rules.py` and `validate-rules.sh` treat them normally.)
+
 ## Test corpus
 
 `./scripts/run-fixtures.sh` clones each fixture from `fixtures/manifest.yaml`, runs the full rule pack, and reports per-fixture findings vs expected. Every rule must have at least one fixture with expected output.

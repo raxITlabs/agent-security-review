@@ -1,0 +1,29 @@
+id: scope.smolagents-code-agent-unsandboxed
+language: python
+severity: error
+message: |-
+  smolagents CodeAgent is constructed without a sandboxed executor_type
+  (e2b / docker / modal / blaxel), so it runs LLM-generated Python on the host
+  with the default local executor. A CodeAgent executes model-authored code by
+  design — the default local executor turns prompt injection into host RCE.
+  Architectural fix: pass executor_type="e2b" (or "docker" / "modal" / "blaxel")
+  so generated code runs in an isolated sandbox, and pair it with a tight
+  additional_authorized_imports allowlist (Shift 1, Scope).
+metadata:
+  shift: scope
+  component: agent
+  confidence: high
+  framework: smolagents-secure-code-execution
+  references:
+    - https://huggingface.co/docs/smolagents/tutorials/secure_code_execution
+    - https://www.microsoft.com/en-us/security/blog/2026/05/07/prompts-become-shells-rce-vulnerabilities-ai-agent-frameworks/
+rule:
+  all:
+    - pattern: CodeAgent($$$)
+    - not:
+        has:
+          stopBy: end
+          kind: keyword_argument
+          all:
+            - has: { field: name, regex: '^executor_type$' }
+            - has: { field: value, regex: 'e2b|docker|modal|blaxel' }

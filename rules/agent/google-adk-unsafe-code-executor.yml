@@ -1,0 +1,20 @@
+id: scope.google-adk-unsafe-code-executor
+language: python
+severity: error
+message: |-
+  Google ADK `UnsafeLocalCodeExecutor` executes model-generated code in the
+  current local process (ADK names it "Unsafe" for exactly this reason). Wiring
+  it into an agent's `code_executor` turns prompt injection into host code
+  execution with no isolation. Architectural fix: use a sandboxed executor
+  (container / VertexAiCodeExecutor / a gVisor-isolated runner) instead, and gate
+  side-effecting code behind human approval (Shift 1, Scope).
+metadata:
+  shift: scope
+  component: agent
+  confidence: high
+  framework: google-adk-code-execution
+  references:
+    - https://google.github.io/adk-docs/tools/built-in-tools/#code-execution
+    - https://www.microsoft.com/en-us/security/blog/2026/05/07/prompts-become-shells-rce-vulnerabilities-ai-agent-frameworks/
+rule:
+  pattern: UnsafeLocalCodeExecutor($$$)

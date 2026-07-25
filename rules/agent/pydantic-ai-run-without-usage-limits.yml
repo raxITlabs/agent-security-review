@@ -1,0 +1,38 @@
+id: scope.pydantic-ai-run-without-usage-limits
+language: python
+severity: warning
+message: |-
+  Pydantic AI agent run (run_sync / run_stream) has no usage_limits=UsageLimits(...).
+  The model turn / tool-call / token budget is left at defaults, so a tool-calling
+  loop or retry storm can run up cost unchecked (denial-of-wallet). Architectural
+  fix: pass usage_limits=UsageLimits(request_limit=..., tool_calls_limit=...,
+  total_tokens_limit=...) aligned to the task budget (Shift 1, Scope).
+metadata:
+  shift: scope
+  component: agent
+  confidence: medium
+  framework: pydantic-ai-usage-limits
+  references:
+    - https://ai.pydantic.dev/agent/#usage-limits
+    - https://cloudsecurityalliance.org/blog/2025/02/06/agentic-ai-threat-modeling-framework-maestro
+# Anchored on run_sync / run_stream, which are distinctive to Pydantic AI. Bare
+# .run() is deliberately excluded — the receiver can't be proven to be an Agent in
+# pure AST, so it collides with subprocess.run / app.run / loop.run (dataflow job,
+# left to the opengrep layer). Runner.run_sync (OpenAI Agents SDK) is excluded via
+# the $A constraint so it stays owned by scope.openai-agents-runner-without-*.
+constraints:
+  A:
+    not:
+      regex: '^Runner$'
+rule:
+  all:
+    - any:
+        - pattern: $A.run_sync($$$)
+        - pattern: $A.run_stream($$$)
+    - not:
+        has:
+          stopBy: end
+          kind: keyword_argument
+          has:
+            field: name
+            regex: '^usage_limits$'
