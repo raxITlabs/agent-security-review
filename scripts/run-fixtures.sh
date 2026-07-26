@@ -33,13 +33,36 @@ for name in $fixture_names; do
     pin_ref=$(yq -r ".fixtures[] | select(.name == \"$name\") | .pin_ref" "$MANIFEST")
     classification=$(yq -r ".fixtures[] | select(.name == \"$name\") | .classification" "$MANIFEST")
 
+    # pin_ref is a full commit SHA (enforced below), so we cannot use
+    # `git clone --branch` (refs only) or `git reset --hard origin/$pin_ref`
+    # (no such remote-tracking ref). Fetch the single commit by SHA instead —
+    # GitHub serves reachable-SHA fetches, so this stays a shallow, cheap fetch.
+    case "$pin_ref" in
+        [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]*)
+            [ "${#pin_ref}" -eq 40 ] || {
+                echo "  ERROR: pin_ref for '$name' must be a full 40-char commit SHA (got '$pin_ref')"
+                exit 1
+            }
+            ;;
+        *)
+            echo "  ERROR: pin_ref for '$name' must be a commit SHA, not a branch ('$pin_ref')."
+            echo "         A branch-pinned corpus cannot attribute a findings change to a rule change."
+            exit 1
+            ;;
+    esac
+
     target_dir="$FIXTURES_DIR/$name"
     if [ ! -d "$target_dir/.git" ]; then
-        echo "  Cloning $source ($pin_ref)..."
-        git clone --depth 1 --branch "$pin_ref" "$source" "$target_dir" 2>&1 | tail -2
+        echo "  Initialising $name from $source @ ${pin_ref:0:12}..."
+        git init -q "$target_dir"
+        git -C "$target_dir" remote add origin "$source"
+    fi
+    if [ "$(git -C "$target_dir" rev-parse HEAD 2>/dev/null)" = "$pin_ref" ]; then
+        echo "  Already at ${pin_ref:0:12}"
     else
-        echo "  Already cloned, fetching latest..."
-        (cd "$target_dir" && git fetch origin "$pin_ref" 2>&1 | tail -2 && git reset --hard "origin/$pin_ref" 2>&1 | tail -1)
+        echo "  Fetching ${pin_ref:0:12}..."
+        git -C "$target_dir" fetch -q --depth 1 origin "$pin_ref" 2>&1 | tail -2
+        git -C "$target_dir" checkout -q --detach FETCH_HEAD 2>&1 | tail -1
     fi
 
     # Run ast-grep
