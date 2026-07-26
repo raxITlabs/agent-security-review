@@ -69,6 +69,43 @@ while IFS= read -r rule_file; do
 done < <(find "$RULES_DIR" -name "*.yml" -type f | sort)
 
 echo ""
+
+# --- docs/RULES.md severity must match the rule files ---------------------
+# Severity is not cosmetic: downstream it gates floor-eligibility (whether a rule
+# can drive a deterministic Failed). A docs table that misstates it will be
+# reasoned from and believed. Three rows had silently drifted before this check
+# existed, so it is enforced rather than trusted.
+RULES_MD="$REPO_ROOT/docs/RULES.md"
+if [ -f "$RULES_MD" ]; then
+    drift=$(RULES_DIR="$RULES_DIR" RULES_MD="$RULES_MD" python3 - <<'PY'
+import re, glob, os
+sev = {}
+for p in glob.glob(os.path.join(os.environ["RULES_DIR"], "**", "*.yml"), recursive=True):
+    s = open(p, encoding="utf-8").read()
+    rid = re.search(r'^id:\s*(\S+)', s, re.M)
+    sv  = re.search(r'^severity:\s*(\S+)', s, re.M)
+    if rid and sv:
+        sev[rid.group(1)] = sv.group(1)
+bad = []
+for line in open(os.environ["RULES_MD"], encoding="utf-8"):
+    m = re.match(r'\|\s*`([^`]+)`\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|', line)
+    if not m:
+        continue
+    rid, doc_sev = m.group(1), m.group(3).strip()
+    if rid in sev and sev[rid] != doc_sev:
+        bad.append(f"  {rid}: docs says '{doc_sev}', rule says '{sev[rid]}'")
+print("\n".join(bad))
+PY
+)
+    if [ -n "$drift" ]; then
+        echo "✗ docs/RULES.md severity drift:"
+        echo "$drift"
+        fail_count=$((fail_count + 1))
+    else
+        echo "✓ docs/RULES.md severities match rule files"
+    fi
+fi
+
 echo "Rules: $rule_count, failures: $fail_count"
 
 if [ "$fail_count" -gt 0 ]; then exit 1; fi

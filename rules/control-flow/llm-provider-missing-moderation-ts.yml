@@ -1,12 +1,23 @@
 id: stop.llm-provider-missing-moderation-ts
 language: typescript
-severity: warning
+severity: info
 message: |-
-  LLM call invoked without input/output moderation classifier. No guardrail layer on prompt or response.
-  Architectural fix: wrap LLM calls with moderation (Llama Guard, OpenAI Moderation, Bedrock Guardrails) (Shift 3).
+  LLM call in this function has no input/output moderation classifier. No guardrail
+  layer on the prompt or response. (Advisory: moderation often lives at a different
+  layer - confirm there's a guardrail somewhere on this path.)
+  Architectural fix: wrap LLM calls with a moderation classifier (Llama Guard,
+  OpenAI Moderation, Bedrock Guardrails) (Shift 3).
 metadata:
   shift: stop
   component: control-flow
+  confidence: low
+  # Severity is deliberately `info`, matching the Python variant. This is an
+  # ABSENCE-based rule with a FUNCTION-scoped exculpation, so it is structurally
+  # blind to moderation implemented anywhere else - an API gateway, middleware, a
+  # provider-side guardrail attached at model-config time, or a separate service.
+  # That is where moderation usually lives, so a deterministic Failed driven by this
+  # rule would be a false accusation by construction. It stays advisory input to the
+  # judge, which can reason across files and layers. See the Python variant.
   framework: meta-llamaguard
   references:
     - https://ai.meta.com/research/publications/llama-guard-llm-based-input-output-safeguard-for-human-ai-conversations/
