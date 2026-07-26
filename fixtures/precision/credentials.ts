@@ -19,3 +19,7 @@ const eos_token = "<|endoftext|>";                           // EXPECT_NONE
 
 // Retained true positive: base64 secret containing "/" must still fire.
 const awsSecretAccessKey = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYzTESTKEY";  // EXPECT_MATCH
+
+// --- PRECISION 2026-07 (prose guard): sentences, not secrets.
+const clientSecret = "Must be valid Azure application secret";  // EXPECT_NONE
+const authToken = "This token expires after thirty minutes";    // EXPECT_NONE

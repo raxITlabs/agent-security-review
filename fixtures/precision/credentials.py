@@ -36,3 +36,11 @@ prompt_tokens_key = "usage.prompt_tokens"              # EXPECT_NONE
 aws_secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYzTESTKEY"   # EXPECT_MATCH
 client = Thing(api_key="sk-live-abc123def456ghi789")   # EXPECT_MATCH
 cfg = {"password": "hunter2hunter2hunter2"}            # EXPECT_MATCH
+
+# --- PRECISION 2026-07 (prose guard): a credential-named variable holding a SENTENCE
+# is an error message / help string / validation hint, not a secret. Real secrets have
+# no internal whitespace. These survived the identifier-shape guards above.
+client_secret = "Must be valid Azure application secret"   # EXPECT_NONE
+token = "This token expires after thirty minutes"          # EXPECT_NONE
+api_key = "Contact the administrator to obtain a key"      # EXPECT_NONE
+password = "Minimum twelve characters with one symbol"     # EXPECT_NONE
