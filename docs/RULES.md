@@ -1,6 +1,6 @@
 # Rule catalog
 
-<!-- rules:count -->57 rules · 8 components<!-- /rules:count --> in the pack, grouped by component. Severity is `error` (block), `warning` (review), or `info`. The `scope` / `sign` / `stop` prefix on each rule ID is its architectural shift — see [Frameworks](FRAMEWORKS.md).
+<!-- rules:count -->58 rules · 8 components<!-- /rules:count --> in the pack, grouped by component. Severity is `error` (block), `warning` (review), or `info`. The `scope` / `sign` / `stop` prefix on each rule ID is its architectural shift — see [Frameworks](FRAMEWORKS.md).
 
 > **Counts are generated.** The numbers above are stamped by `scripts/count-rules.py` straight from the rule files, and CI fails if they drift. Don't hand-edit them.
 
@@ -64,7 +64,8 @@ Most rules are **detectors** — they flag a missing or broken control. A few ar
 |---|---|---|---|
 | `scope.tool-exposes-code-execution` | py | error | LLM tool whose name/description advertises code/shell execution (a `python`/`terminal` tool) — direct LLM-output-to-RCE surface |
 | `scope.mcp-server-without-input-validation` | py | error | MCP tool params reach dangerous sinks unvalidated — tool poisoning / RCE |
-| `sign.mcp-client-without-server-allowlist` | py | warning | MCP client connects to a variable server URL with no allowlist — trusts arbitrary servers |
+| `scope.mcp-stdio-spawn-from-external-config` | py | error | MCP stdio spawn recipe (command/args/env) assigned from a caller-supplied config with no server-side origin — attacker-controlled argv |
+| `sign.mcp-client-without-server-allowlist` | py | warning | MCP client built from a variable server config with no allowlist in scope — endpoint trust unverified at the call site (advisory; the spawn case has its own rule above) |
 | `sign.mcp-tool-without-allowlist` | py | warning | MCP tool lacks URL/path allowlist — SSRF / path traversal |
 | `scope.mcp-prompt-injection-in-tool-description` | py | warning | Imperative phrases in a tool description — injection planted in the prompt surface |
 

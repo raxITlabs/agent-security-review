@@ -1,0 +1,91 @@
+id: scope.mcp-stdio-spawn-from-external-config
+language: python
+severity: error
+message: |-
+  An MCP stdio server's process-spawn recipe (command / args / env) is assigned from a caller-supplied config object, and this module never establishes a trusted, server-side origin for it. Every MCP stdio server is a local process spawn, so whoever controls this dict controls argv — if the config crosses a request boundary anywhere upstream, this is unauthenticated RCE.
+  Architectural fix: never accept command/args/env across a trust boundary. Keep an immutable server-side registry of approved MCP servers and let callers pass only a server NAME that indexes it; resolve the spawn recipe from the registry (Shift 1).
+metadata:
+  shift: scope
+  component: mcp
+  confidence: high
+  related:
+    - sign.mcp-client-without-server-allowlist
+  # WHY THIS RULE EXISTS SEPARATELY FROM sign.mcp-client-without-server-allowlist:
+  # that rule anchors on the client CONSTRUCTOR, where a safe config and a
+  # caller-supplied one are the same expression — it fires on the trusted fixture and
+  # misses the external one. Constructor-anchored gating was evaluated and rejected.
+  # This rule anchors on the command/args/env ASSIGNMENT instead, which is the point
+  # where an externally-shaped value actually becomes argv.
+  #
+  # KNOWN LIMITATIONS (deliberate, precision-first — read before widening):
+  #  1. The trusted-origin guards are MODULE-scoped. Any json.load / open / os.environ
+  #     / load_dotenv / UPPERCASE-constant-dict anywhere in the file suppresses every
+  #     finding in that file. A vulnerable spawn co-located with unrelated config
+  #     loading is therefore MISSED. This fails open on purpose: the rule feeds a
+  #     high-confidence verdict, and a false RCE accusation costs more than a miss.
+  #  2. ast-grep has no taint mode and Opengrep OSS taint is intra-procedural, so the
+  #     actual source->sink chain (request payload -> config dict -> argv, which spans
+  #     files) is NOT proven here. The rule asserts SHAPE — "this spawn recipe is not
+  #     established server-side in this module" — not reachability. The message says so.
+  #  3. It emits one finding per tainted field (command, args, env), so a single
+  #     vulnerable spawn site yields up to 3 findings. That is intentional for review
+  #     (each field is separately attacker-controlled); rollups should dedupe by rule id.
+  framework: msrc-prompts-become-shells
+  references:
+    - https://www.microsoft.com/en-us/security/blog/2026/05/07/prompts-become-shells-rce-vulnerabilities-ai-agent-frameworks/
+    - https://modelcontextprotocol.io/specification/draft/basic/security_best_practices
+rule:
+  kind: assignment
+  all:
+    - has:
+        field: left
+        kind: subscript
+        has:
+          kind: string
+          regex: '(?i)^"?(command|args|env)"?$'
+    - has:
+        field: right
+        not:
+          any:
+            - kind: string
+            - kind: list
+            - kind: dictionary
+            - kind: concatenated_string
+    - inside:
+        stopBy: end
+        kind: module
+        has:
+          stopBy: end
+          any:
+            - kind: string
+              regex: '(?i)^"?stdio"?$'
+            - pattern: MultiServerMCPClient($$$)
+            - pattern: MCPServerStdio($$$)
+            - pattern: stdio_client($$$)
+            - pattern: StdioServerParameters($$$)
+    - not:
+        inside:
+          stopBy: end
+          kind: module
+          has:
+            stopBy: end
+            any:
+              - pattern: json.load($$$)
+              - pattern: json.loads($$$)
+              - pattern: yaml.safe_load($$$)
+              - pattern: yaml.load($$$)
+              - pattern: tomllib.load($$$)
+              - pattern: open($$$)
+              - pattern: $P.read_text($$$)
+              - pattern: os.environ
+              - pattern: os.getenv($$$)
+              - pattern: load_dotenv($$$)
+              - kind: assignment
+                all:
+                  - has:
+                      field: left
+                      kind: identifier
+                      regex: '^[A-Z][A-Z0-9_]{2,}$'
+                  - has:
+                      field: right
+                      kind: dictionary
