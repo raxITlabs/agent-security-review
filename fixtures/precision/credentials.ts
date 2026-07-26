@@ -23,3 +23,9 @@ const awsSecretAccessKey = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYzTESTKEY";  // EXPECT_
 // --- PRECISION 2026-07 (prose guard): sentences, not secrets.
 const clientSecret = "Must be valid Azure application secret";  // EXPECT_NONE
 const authToken = "This token expires after thirty minutes";    // EXPECT_NONE
+
+// --- PRECISION 2026-07 (env-var-name guard): the aeon FP class.
+const authSecret = 'LITEBEAM_API_KEY_VALUE';           // EXPECT_NONE
+const apiKey4 = "OPENAI_API_KEY_PRODUCTION";           // EXPECT_NONE
+// All-caps with no underscore is a real key shape and must still fire.
+const awsAccessKey = "AKIAIOSFODNN7QWERTZXC";          // EXPECT_MATCH

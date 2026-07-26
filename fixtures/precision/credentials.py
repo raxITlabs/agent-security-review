@@ -44,3 +44,12 @@ client_secret = "Must be valid Azure application secret"   # EXPECT_NONE
 token = "This token expires after thirty minutes"          # EXPECT_NONE
 api_key = "Contact the administrator to obtain a key"      # EXPECT_NONE
 password = "Minimum twelve characters with one symbol"     # EXPECT_NONE
+
+# --- PRECISION 2026-07 (env-var-name guard): a SCREAMING_SNAKE_CASE value names
+# WHERE the secret comes from; it is not the secret.
+api_key = "OPENAI_API_KEY_PRODUCTION"                  # EXPECT_NONE
+client_secret = "AZURE_CLIENT_SECRET_ID"               # EXPECT_NONE
+auth_token = "GITHUB_PERSONAL_ACCESS_TOKEN"            # EXPECT_NONE
+# ...but all-caps credentials WITHOUT an underscore are real and must still fire.
+aws_access_key = "AKIAIOSFODNN7QWERTZXC"               # EXPECT_MATCH
+access_key = "ASIAQ3PHCVTYRWFBXLOR"                    # EXPECT_MATCH
