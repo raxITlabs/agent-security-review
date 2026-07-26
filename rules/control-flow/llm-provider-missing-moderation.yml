@@ -11,6 +11,12 @@ metadata:
   shift: stop
   component: control-flow
   confidence: low
+  # Severity is deliberately `info`, and the -ts variant is aligned to match. This is
+  # an ABSENCE-based rule with a FUNCTION-scoped exculpation, so it cannot see
+  # moderation implemented at another layer (gateway, middleware, provider-side
+  # guardrail config, separate service) - which is where it usually lives. Keeping it
+  # below the floor threshold is the point, not an oversight: a deterministic Failed
+  # from this rule would be a false accusation by construction.
   framework: meta-llamaguard
   references:
     - https://ai.meta.com/research/publications/llama-guard-llm-based-input-output-safeguard-for-human-ai-conversations/

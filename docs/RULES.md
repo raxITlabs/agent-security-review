@@ -39,7 +39,7 @@ Most rules are **detectors** — they flag a missing or broken control. A few ar
 | `sign.hardcoded-credential-literal` | py | error | Hardcoded credential in source — survives prompt injection because it's baked in |
 | `sign.hardcoded-credential-literal-ts` | ts | error | Hardcoded credential in source — survives prompt injection |
 | `sign.db-connection-without-tls` | py | error | DB connection without TLS — data in transit is plaintext |
-| `sign.shared-client-ambient-identity` | py | warning | Client built at module scope — every tool call shares one ambient identity (Confused Deputy) |
+| `sign.shared-client-ambient-identity` | py | info | Client built at module scope — every tool call shares one ambient identity (Confused Deputy) |
 | `sign.env-var-secret-at-module-scope` | py | warning | Env-var secret read at module scope, reused across all tool calls — ambient identity |
 | `sign.env-var-secret-at-module-scope-ts` | ts | warning | Env-var secret read at module scope, reused across all requests — ambient identity |
 | `sign.tool-without-principal-context` | py | warning | Tool lacks a principal/context/auth parameter — can't do Cedar deny-by-default |
@@ -55,8 +55,8 @@ Most rules are **detectors** — they flag a missing or broken control. A few ar
 | `stop.tool-dispatcher-without-policy-gate-ts` | ts | error | Tool `execute()` handler dispatches with no policy / authorization check |
 | `stop.openai-agents-tool-without-policy-gate` | py | error | `@function_tool` dispatches with no policy / authorization check |
 | `stop.log-output-with-secrets` | py | error | Log / print interpolates a likely secret — logs become an exfiltration vector |
-| `stop.llm-provider-missing-moderation` | py | warning | LLM completion with no input/output moderation — no guardrail layer |
-| `stop.llm-provider-missing-moderation-ts` | ts | warning | LLM call with no input/output moderation classifier — no guardrail layer |
+| `stop.llm-provider-missing-moderation` | py | info | LLM completion with no moderation classifier in the same function — advisory: moderation usually lives at another layer, so this cannot floor |
+| `stop.llm-provider-missing-moderation-ts` | ts | info | LLM call with no moderation classifier in the same function — advisory, aligned with the Python variant |
 
 ## MCP — `rules/mcp/`
 
