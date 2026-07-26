@@ -84,9 +84,10 @@ fixtures:
       # run-fixtures.sh could not have passed even before the aeon migration.
       # apps/dashboard/lib/github.ts imports fs/promises + child_process in one module.
       "scope.skill-with-dangerous-tool-combo-ts": 1
-      # KNOWN FALSE POSITIVE, recorded so CI is honest rather than green-by-omission:
-      # apps/dashboard/lib/mcp-catalog.ts:71 is `authSecret: 'LITEBEAM_API_KEY'` — the
-      # value is an env-var NAME, not a secret. Tracked as a follow-up tightening of
-      # sign.hardcoded-credential-literal-ts (uppercase env-var-name-shaped values).
-      # When that rule is fixed this must drop to 0 in the same commit.
-      "sign.hardcoded-credential-literal-ts": 1
+      # RESOLVED: `sign.hardcoded-credential-literal-ts` was recorded here at 1 as a
+      # KNOWN FALSE POSITIVE — apps/dashboard/lib/mcp-catalog.ts:71 is
+      # `authSecret: 'LITEBEAM_API_KEY'`, where the value is an env-var NAME, not a
+      # secret. The rule now rejects SCREAMING_SNAKE_CASE values, so it fires 0 here
+      # and the key is removed rather than set to 0 (the harness compares exact maps,
+      # and a 0 entry would itself fail). This is the same-commit drop the previous
+      # comment required.
