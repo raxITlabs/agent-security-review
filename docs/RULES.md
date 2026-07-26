@@ -75,7 +75,7 @@ Most rules are **detectors** — they flag a missing or broken control. A few ar
 | `scope.shared-memory-no-namespace` | py | error | Shared-store write with no per-agent/tenant namespace — Brooks Dropbox poisoning |
 | `stop.memory-tainted-read-flows-to-external` | py | error | Memory read flows to an external request — tainted memory may be exfiltrated |
 | `sign.memory-write-no-auth-context` | py | warning | Memory write with no authorization check — any tool call can write |
-| `scope.rag-without-source-attribution` | py | warning | RAG result fed to the LLM with no source-attribution metadata |
+| `scope.rag-without-source-attribution` | py | warning | Retrieved doc content assembled into a prompt string with no provenance field in the assembling scope |
 
 ## Skills — `rules/skills/`
 

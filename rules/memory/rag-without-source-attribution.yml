@@ -2,9 +2,12 @@ id: scope.rag-without-source-attribution
 language: python
 severity: warning
 message: |-
-  RAG retrieval result fed into an LLM prompt without source attribution metadata.
-  Indirect prompt injection risk: compromised retrieved documents inject instructions invisibly.
-  Architectural fix: tag every retrieved chunk with source URL + trust label; render in prompt (Shift 1).
+  Retrieved document content is concatenated into an LLM context/prompt string with no
+  provenance field (source/url/title/metadata) anywhere in the assembling scope.
+  Indirect prompt injection risk: the model cannot tell retrieved text from instructions,
+  and the report cannot cite where a claim came from.
+  Architectural fix: render every chunk with its source URL + trust label alongside the
+  content, e.g. f"Source: {d.metadata.get('source')}\nContent: {d.page_content}" (Shift 1).
 metadata:
   shift: scope
   component: memory
@@ -13,25 +16,102 @@ metadata:
   references:
     - https://cloudsecurityalliance.org/blog/2025/02/06/agentic-ai-threat-modeling-framework-maestro
     - https://simonwillison.net/2023/Apr/14/worst-that-can-happen/
+  # PRECISION NOTE (2026-07): this rule used to anchor on the *retrieval call*
+  # (`docs = retriever.invoke(...)`) with a `not: has:` exculpation scoped to the
+  # assignment node itself. That exculpation was vacuous — `docs = retriever.invoke(q)`
+  # can never contain `.metadata["source"]` in its own subtree — so the rule degenerated
+  # into "fire on every retrieval call", with zero power to distinguish a codebase that
+  # attributes its sources from one that does not. It fired 4x on gpt-researcher, which
+  # demonstrably DOES attribute (deterministic reference list in
+  # actions/markdown_processing.py, and Source:/Title: rendered into every context block
+  # in prompts.py), and 0x on every repo in fixtures/manifest.yaml — i.e. it had never
+  # produced a true positive on a real corpus repo, only false ones.
+  #
+  # It is now anchored on the *context-assembly* site — where retrieved content is
+  # actually rendered into a prompt string — and exculpated by provenance appearing
+  # anywhere in the enclosing function, which is the scope a human reviewer checks.
+  # Provenance evidence is matched as identifier/string NODES, never raw node text, so
+  # that a comment ("TODO: add source attribution") cannot silently suppress a finding.
 rule:
   all:
+    # (1) Retrieved document content is rendered into a context/prompt string.
     - any:
-        - pattern: $RESULTS = $RETRIEVER.invoke($$$)
-        - pattern: $RESULTS = $RETRIEVER.similarity_search($$$)
-        - pattern: $RESULTS = $RETRIEVER.similarity_search_with_score($$$)
-        - pattern: $RESULTS = $RETRIEVER.max_marginal_relevance_search($$$)
-        - pattern: $RESULTS = $RETRIEVER.get_relevant_documents($$$)
-        - pattern: $RESULTS = $RETRIEVER.aget_relevant_documents($$$)
-        - pattern: $RESULTS = $RETRIEVER.retrieve($$$)
-        - pattern: $RESULTS = $RETRIEVER.query($$$)
-        - pattern: $RESULTS = $RETRIEVER.search($$$)
-    - not:
-        has:
-          stopBy: end
-          any:
-            - pattern: $$$.metadata["source"]
-            - pattern: $$$.metadata.get("source")
-            - pattern: source_attribution
-constraints:
-  RETRIEVER:
-    regex: '(?i)(retriev|vector|vectorstore|store|index|search|rag|knowledge|embed|chroma|faiss|pinecone|weaviate|qdrant|milvus|corpus|docstore|kb|collection|query_engine)'
+        # f-string interpolation carrying document content: f"...{d.page_content}..."
+        - all:
+            - kind: interpolation
+            - has:
+                stopBy: end
+                any: &content_accessors
+                  - pattern: $DOC.page_content
+                  - pattern: $DOC["page_content"]
+                  - pattern: $DOC.get("page_content")
+                  - pattern: $DOC["raw_content"]
+                  - pattern: $DOC.get("raw_content")
+            # De-dup: `"".join(f"...{d.page_content}...")` is already reported by the
+            # join arm below. Without this the same line is emitted twice.
+            - not:
+                inside:
+                  stopBy: end
+                  kind: call
+                  has:
+                    field: function
+                    regex: '\.join$'
+        # "\n".join(... d.page_content ...) / "".join([... page_content ...])
+        - all:
+            - kind: call
+            - has:
+                field: function
+                regex: '\.join$'
+            - has:
+                stopBy: end
+                any: *content_accessors
+        # context += doc.page_content
+        - all:
+            - kind: augmented_assignment
+            - has:
+                stopBy: end
+                any: *content_accessors
+    # (2) No provenance field rendered alongside it, in the scope a reviewer would check:
+    #     the enclosing function when there is one, else the module (script-style code).
+    #     A scope that names source/url/title/metadata at all is threading provenance;
+    #     judging *how well* is the assessor's job, not a grep's.
+    #     The two arms must stay mutually exclusive — an unconditional module-level check
+    #     would suppress every assembly site in any file that attributes anywhere.
+    - any:
+        - all:
+            - inside:
+                stopBy: end
+                kind: function_definition
+            - not:
+                inside:
+                  stopBy: end
+                  kind: function_definition
+                  has:
+                    stopBy: end
+                    any: &provenance_evidence
+                      # Identifiers: `metadata`, `source_url`, `doc_title`, `citation`...
+                      - kind: identifier
+                        regex: '(?i)(metadata|source|url|uri|title|citation|cite|referenc|attribution|provenance|document_id|doc_id|href|link)'
+                      # Literals rendered into the prompt: "Source: ", "title", "url"...
+                      # A docstring is also a `string` node, so exclude strings whose
+                      # DIRECT parent is an expression_statement (that is exactly the
+                      # docstring position). Otherwise a function documented as
+                      # "returns the source url" would silently suppress its own finding.
+                      - all:
+                          - kind: string
+                            regex: '(?i)(source|url|uri|title|citation|cite|referenc|attribution|provenance|document_id|doc_id|href|link)'
+                          - not:
+                              inside:
+                                kind: expression_statement
+        - all:
+            - not:
+                inside:
+                  stopBy: end
+                  kind: function_definition
+            - not:
+                inside:
+                  stopBy: end
+                  kind: module
+                  has:
+                    stopBy: end
+                    any: *provenance_evidence
