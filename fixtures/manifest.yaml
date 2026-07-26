@@ -1,13 +1,31 @@
 # Fixture corpus for agent-security-review
 # Each fixture is a public repo cloned by CI to verify rules behave as expected.
-# Expected findings are per rule_id; an empty list means the fixture should produce no findings for that rule.
+# Expected findings are per rule_id; an empty map means the fixture should produce
+# no findings at all.
+#
+# ---------------------------------------------------------------------------
+# pin_ref MUST be a full 40-character commit SHA. Never a branch name.
+#
+# These fixtures are a REGRESSION corpus: their whole job is to attribute a change
+# in findings to a change in our rules. A branch pin makes that impossible — when
+# upstream moves, the diff is "rule change x upstream drift" and CI goes red for
+# reasons that have nothing to do with the pack. That is exactly what happened:
+# every fixture was pinned to `main`, and aeon migrated its agent code from Python
+# to TypeScript, deleting the a2a clients that six of its seven expectations were
+# recorded against. CI was red on main with no rule change involved, which trains
+# everyone to ignore it.
+#
+# To intentionally move a fixture forward: bump the SHA and re-record
+# expected_findings in the SAME commit, so the diff shows both together.
+# ---------------------------------------------------------------------------
 
 fixtures:
   - name: dvla
     description: "Reverse Labs damn-vulnerable-llm-agent — CTF with intentional AI security vulns"
     classification: vulnerable
     source: https://github.com/ReversecLabs/damn-vulnerable-llm-agent
-    pin_ref: main
+    # 2025-06-25 "Update README.md" — repo HEAD at pinning time; the repo is dormant.
+    pin_ref: c0cf9a14adad76e9d6a53c41741f625334bd9971
     expected_findings:
       "scope.god-agent-tool-count": 2          # tools.py has 2 Tool(...) constructions
       "stop.llm-output-to-dangerous-sink": 2   # transaction_db.py has 2 SQL injection sinks
@@ -16,21 +34,30 @@ fixtures:
     description: "LangChain official ReAct agent template — minimal, modern, clean"
     classification: clean
     source: https://github.com/langchain-ai/react-agent
-    pin_ref: main
+    # 2026-07-24 dependabot pillow bump — repo HEAD at pinning time.
+    pin_ref: 51775c205f6f9c937da45cc1d0b9d182f24950f2
     expected_findings: {}   # should produce zero findings
 
   - name: rag-research-agent
     description: "LangChain official RAG research agent template"
     classification: clean
     source: https://github.com/langchain-ai/rag-research-agent-template
-    pin_ref: main
+    # 2024-12-03 "update" — repo HEAD at pinning time; the repo is dormant.
+    pin_ref: 39f3ce6ad9cac90ce10d6f93890511fa67a51885
     expected_findings: {}
 
   - name: aeon
     description: "Aaron Mars's autonomous agent framework — multi-framework A2A clients + openai-agents"
     classification: partial
     source: https://github.com/aaronjmars/aeon
-    pin_ref: main
+    # 2026-07-01, the commit BEFORE 6946424 ("refactor: consolidate installers, cut
+    # a2a-server, drop dead scripts" #579) deleted the Python a2a clients. Deliberately
+    # NOT repo HEAD: aeon has since migrated to TypeScript, and at HEAD the Python rules
+    # this fixture was chosen to exercise match nothing — keeping it there would silently
+    # delete that coverage. All seven originally-recorded expectations reproduce EXACTLY
+    # at this SHA, so the numbers below are the original assertions, not a re-baseline of
+    # drifted behaviour.
+    pin_ref: 14429efb389fa7d0dc00d42a6379b693671c678b
     expected_findings:
       "scope.god-agent-tool-count": 1                       # one Tool() in a2a/langchain_client.py
       "sign.mcp-client-without-server-allowlist": 1         # MCP client connecting to gateway URL without allowlist
@@ -52,3 +79,14 @@ fixtures:
       # max_iter — a real CrewAI unbounded-loop the LangChain-only shape missed.
       "sign.a2a-communication-without-auth": 8
       "scope.agent-without-bounded-loop": 1
+      # --- Added at pinning time. Both of these always fired at this SHA but were
+      # never recorded, so the corpus was under-asserting on the TypeScript rules and
+      # run-fixtures.sh could not have passed even before the aeon migration.
+      # apps/dashboard/lib/github.ts imports fs/promises + child_process in one module.
+      "scope.skill-with-dangerous-tool-combo-ts": 1
+      # KNOWN FALSE POSITIVE, recorded so CI is honest rather than green-by-omission:
+      # apps/dashboard/lib/mcp-catalog.ts:71 is `authSecret: 'LITEBEAM_API_KEY'` — the
+      # value is an env-var NAME, not a secret. Tracked as a follow-up tightening of
+      # sign.hardcoded-credential-literal-ts (uppercase env-var-name-shaped values).
+      # When that rule is fixed this must drop to 0 in the same commit.
+      "sign.hardcoded-credential-literal-ts": 1
